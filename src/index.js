@@ -4,8 +4,10 @@ import app from "./app.js";
 import * as logger from "./utils/logger.js";
 
 if (process.env.NODE_ENV !== "production") {
+  console.log("loading .env file");
   config();
 }
+
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 3003;
