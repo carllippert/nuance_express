@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
-  res.send("Hello, TypeScript Express!");
+  res.status(200).send("Hello, TypeScript Express!");
 });
 
 app.use("/upload", whisperRoute);
