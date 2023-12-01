@@ -9,7 +9,7 @@
     "start": "ts-node src/index.ts",
     "build": "tsc",
     "serve": "node dist/index.js",
-    "dev_2": "nodemon --watch src --ext ts --exec 'ts-node' src/index.ts",
+    "dev_2": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -25,6 +25,7 @@
     "typescript": "^5.3.2"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "@types/express-validator": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.5",
     "cors": "^2.8.5",
@@ -32,6 +33,7 @@
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "1.4.5-lts.1",
+    "node-nlp": "^4.27.0",
     "nodemon": "^3.0.1",
     "openai": "^4.19.1"
   }
