@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import whisperRoute from "./routes/whisperRouter";
+import timelog from "./routes/timelog";
 import * as middleware from "./utils/middleware";
 
 if (process.env.NODE_ENV !== "production") {
@@ -21,6 +22,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/upload", whisperRoute);
+app.use("/time", timelog);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
