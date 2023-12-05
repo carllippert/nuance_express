@@ -25,6 +25,8 @@ type SupabaseUserSession = {
   duration_seconds: number | null;
   activity?: string | null;
   updated_at: string | null;
+  current_user_timezone?: string;
+  current_seconds_from_gmt?: number;
 };
 
 enum LogAction {
@@ -42,6 +44,8 @@ type UserSessionLog = {
   activity: string;
   end_action: LogAction;
   start_time: string;
+  current_user_timezone: string;
+  current_seconds_from_gmt: number;
 };
 
 routes.post("/", async (req, res) => {
@@ -101,6 +105,8 @@ routes.post("/", async (req, res) => {
         duration_seconds: args.duration_seconds,
         activity: args.activity,
         updated_at: new Date().toISOString(),
+        current_user_timezone: args.current_user_timezone,
+        current_seconds_from_gmt: args.current_seconds_from_gmt,
       };
 
       console.log("insertSession:", insertSession);
@@ -181,7 +187,7 @@ routes.post("/", async (req, res) => {
 
     //TODO: figure out how to calculate streaks and store them based on this data
 
-    res.status(200).send({ message: "Hello World!" });
+    res.status(200).send({ message: "Time Logged!" });
   } catch (error) {
     console.log("route error:", error);
     res.status(500).send({ error });

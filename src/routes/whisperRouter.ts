@@ -78,7 +78,15 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
     let supabase_user_id = payload.sub;
 
     console.log("Received file:", req.file.originalname);
-    // const userId = req.body.user_id;
+    // const created_at_user_time = req.body.created_at_user_time;
+    // console.log("created_at_user_time:", created_at_user_time);
+
+    const current_seconds_from_gmt = req.body.seconds_from_gmt;
+    const current_user_time_zone = req.body.user_time_zone;
+
+    console.log("seconds_from_gmt:", current_seconds_from_gmt);
+    console.log("user_time_zone:", current_user_time_zone);
+
     console.log("supabase_user_id:", supabase_user_id);
 
     //TODO: fetch previous messages from user ( in last hour ) limit 10
@@ -195,6 +203,8 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
           detected_completion_language_confidence,
           completion_attempts,
           all_completion_responses,
+          current_seconds_from_gmt,
+          current_user_time_zone,
         },
       ])
       .select();
