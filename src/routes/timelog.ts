@@ -16,6 +16,8 @@ type SupabaseTimeLog = {
   end_action: string | null;
   user_session_time_log_id?: string;
   user_session_id: string | null;
+  current_user_timezone: string;
+  current_seconds_from_gmt: number;
 };
 
 type SupabaseUserSession = {
@@ -135,6 +137,8 @@ routes.post("/", async (req, res) => {
       initiate_action: args.initiate_action,
       end_action: args.end_action,
       user_session_id: args.user_session_id,
+      current_user_timezone: args.current_user_timezone,
+      current_seconds_from_gmt: args.current_seconds_from_gmt,
     };
 
     const { data: timeLogData, error: timeLogError } = await supabase
