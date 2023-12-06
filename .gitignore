@@ -32,3 +32,5 @@ dist/
 
 # Temporary file store for audio files
 public/uploads/
+# Sentry Config File
+.sentryclirc

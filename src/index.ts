@@ -4,12 +4,37 @@ import whisperRoute from "./routes/whisperRouter";
 import timelog from "./routes/timelog";
 import * as middleware from "./utils/middleware";
 
+import * as Sentry from "@sentry/node";
+import { ProfilingIntegration } from "@sentry/profiling-node";
+
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+//Sentry error reporting
+Sentry.init({
+  dsn: "https://e6d64a2947ccc486f04f4acbab88c4f2@o1208202.ingest.sentry.io/4506349959577600",
+  integrations: [
+    // enable HTTP calls tracing
+    new Sentry.Integrations.Http({ tracing: true }),
+    // enable Express.js middleware tracing
+    new Sentry.Integrations.Express({ app }),
+    new ProfilingIntegration(),
+  ],
+  // Performance Monitoring
+  tracesSampleRate: 1.0,
+  // Set sampling rate for profiling - this is relative to tracesSampleRate
+  profilesSampleRate: 1.0,
+});
+
+// The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
+
+// TracingHandler creates a trace for every incoming request
+app.use(Sentry.Handlers.tracingHandler());
 
 // parse json request body
 app.use(express.json());
@@ -27,6 +52,9 @@ app.use("/time", timelog);
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
+// The error handler must be registered before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
 
 // custom middleware
 app.use(middleware.unknownEndpoint);

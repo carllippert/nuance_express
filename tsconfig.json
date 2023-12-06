@@ -3,10 +3,19 @@
     "target": "es6",
     "module": "commonjs",
     "outDir": "./dist",
+
     // "strict": true,
     "esModuleInterop": true,
+
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "inlineSources": true,
+
+    // Set `sourceRoot` to  "/" to strip the build path prefix
+    // from generated source code references.
+    // This improves issue grouping in Sentry.
+    "sourceRoot": "/"
   },
   "include": ["src/**/*.ts", "declarations.d.ts"],
   "exclude": ["node_modules"]
