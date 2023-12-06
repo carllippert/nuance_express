@@ -66,9 +66,9 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
 
     let payload = jwt.verify(token, SUPABASE_JWT_SECRET);
 
-    if (payload) {
-      console.log("payload:", payload);
-    }
+    // if (payload) {
+    //   console.log("payload:", payload);
+    // }
 
     if (!payload) {
       console.log("Invalid token");
@@ -84,10 +84,10 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
     const current_seconds_from_gmt = req.body.seconds_from_gmt;
     const current_user_time_zone = req.body.user_time_zone;
 
-    console.log("seconds_from_gmt:", current_seconds_from_gmt);
-    console.log("user_time_zone:", current_user_time_zone);
+    // console.log("seconds_from_gmt:", current_seconds_from_gmt);
+    // console.log("user_time_zone:", current_user_time_zone);
 
-    console.log("supabase_user_id:", supabase_user_id);
+    // console.log("supabase_user_id:", supabase_user_id);
 
     //TODO: fetch previous messages from user ( in last hour ) limit 10
     const recentMessages: SupabaseMessage[] = [];
@@ -132,7 +132,7 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
     detected_transcription_language = transcriptionGuess[0].alpha2;
     detected_transcription_language_confidence = transcriptionGuess[0].score;
 
-    console.log("resp:", JSON.stringify(resp.text));
+    // console.log("resp:", JSON.stringify(resp.text));
 
     //detect language
 
@@ -209,7 +209,7 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
       ])
       .select();
 
-    console.log("supabase Data:", insertData);
+    // console.log("supabase Data:", insertData);
     console.log("supabase error:", insertError);
   } catch (error: any) {
     console.log("error:", JSON.stringify(error));
@@ -269,7 +269,7 @@ const fetchCompletion = async (
     { role: "user", content: transcript },
   ];
 
-  console.log("messages:", messages);
+  // console.log("messages:", messages);
 
   for (let i = 0; i < 3; i++) {
     completion_attempts++;
@@ -350,7 +350,7 @@ const fetchCompletion = async (
     all_completion_responses,
   };
 
-  console.log("GPT Completion Response:", JSON.stringify(obj, null, 3));
+  // console.log("GPT Completion Response:", JSON.stringify(obj, null, 3));
 
   return obj;
 };

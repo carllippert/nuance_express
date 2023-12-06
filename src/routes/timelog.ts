@@ -69,9 +69,9 @@ routes.post("/", async (req, res) => {
 
     let payload = jwt.verify(token, SUPABASE_JWT_SECRET);
 
-    if (payload) {
-      console.log("payload:", payload);
-    }
+    // if (payload) {
+    //   console.log("payload:", payload);
+    // }
 
     if (!payload) {
       console.log("Invalid token");
@@ -83,7 +83,7 @@ routes.post("/", async (req, res) => {
 
     console.log("supabase_user_id:", supabase_user_id);
 
-    console.log("req.body timeLogger:", req.body, null, 3);
+    // console.log("req.body timeLogger:", req.body, null, 3);
 
     if (!supabase_user_id) {
       console.log("No supabase_user_id");
@@ -111,7 +111,7 @@ routes.post("/", async (req, res) => {
         current_seconds_from_gmt: args.current_seconds_from_gmt,
       };
 
-      console.log("insertSession:", insertSession);
+      // console.log("insertSession:", insertSession);
 
       const { data: session_data, error: session_error } = await supabase
         .from("user_sessions")
@@ -122,7 +122,7 @@ routes.post("/", async (req, res) => {
         console.log("create session error:", session_error);
         throw session_error;
       }
-      console.log("update_duration_data:", session_data);
+      // console.log("update_duration_data:", session_data);
     } else {
       console.log("no new user session");
     }
@@ -151,7 +151,7 @@ routes.post("/", async (req, res) => {
       throw timeLogError;
     }
 
-    console.log("create time log data:", timeLogData);
+    // console.log("create time log data:", timeLogData);
 
     //create user_time_log && update duration on user_session
     if (args.initiate_action !== LogAction.start) {
@@ -165,7 +165,7 @@ routes.post("/", async (req, res) => {
         console.log("get user session error:", userSessionError);
         throw userSessionError;
       }
-      console.log("get user session data:", userSessionData);
+      // console.log("get user session data:", userSessionData);
 
       //Update user_session duration and updated_at
       let updateDuration: SupabaseUserSession = {
@@ -174,7 +174,7 @@ routes.post("/", async (req, res) => {
         updated_at: new Date().toISOString(),
       };
 
-      console.log("update_duration:", updateDuration);
+      // console.log("update_duration:", updateDuration);
 
       let { data, error } = await supabase
         .from("user_sessions")
@@ -186,7 +186,7 @@ routes.post("/", async (req, res) => {
         console.log("update_duration_error:", error);
         throw error;
       }
-      console.log("update_duration_data:", data);
+      // console.log("update_duration_data:", data);
     }
 
     //TODO: figure out how to calculate streaks and store them based on this data
