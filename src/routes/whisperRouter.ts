@@ -101,6 +101,9 @@ routes.post(
         "es",
       ]);
 
+      //is it a question or a transcription?
+      let categoryResp = await categorize(resp.text);
+
       console.log("Guessing Transcription Language => ", transcriptionGuess);
 
       detected_transcription_language = transcriptionGuess[0].alpha2;
@@ -195,6 +198,7 @@ routes.post(
   }
 );
 
+//TODO: should i use function calling to do the "question or transcription" detection?
 const fetchCompletion = async (
   system_prompt: string,
   transcript: string,
@@ -331,6 +335,71 @@ const fetchCompletion = async (
   // console.log("GPT Completion Response:", JSON.stringify(obj, null, 3));
 
   return obj;
+};
+
+const categorize = async (transcription: string) => {
+  try {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || "",
+    });
+
+    const CATEGORY_SYSTEM_PROMPT = `
+    System: You are an advanced AI designed to categorize user inputs for a language learning app focused on reading books in target learning language into two distinct categories: 'Question' or 'Translation Request'. After analyzing each input, categorize it accordingly and provide a confidence score based on how certain you are about the categorization. The confidence score should be a percentage from 0% (completely uncertain) to 100% (completely certain).
+
+    When categorizing the input, consider the following criteria:
+    - If the input is a question, it typically starts with "What", "Where", "When", "Why", or "How", and seeks specific information or an explanation.
+    - If the input is a translation request, it will be a statement or passage in Spanish that does not seek information but rather needs to be translated into English.
+    
+    For each user input, provide your categorization along with the confidence score formatted as JSON in the following format:
+
+    {
+      "isQuestion": true,
+      "confidence": 0.95
+    }
+    `;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: CATEGORY_SYSTEM_PROMPT },
+        { role: "user", content: transcription },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "answer_or_translate",
+            description:
+              "Does different work depending on wether the user is asking a question or wants text translated.",
+            parameters: {
+              type: "object",
+              properties: {
+                isQuestion: {
+                  type: "boolean",
+                  description: "True if the user is asking a question.",
+                },
+                confidence: {
+                  type: "number",
+                  description:
+                    "The confidence of the model that in its response to isQuestion boolean.",
+                },
+              },
+              required: ["isQuestion", "confidence"],
+            },
+          },
+        },
+      ],
+      tool_choice: {
+        type: "function",
+        function: { name: "answer_or_translate" },
+      },
+    });
+
+    console.log("categoryies response => ", JSON.stringify(response, null, 3));
+    return response;
+  } catch (error) {
+    console.log("error:", error);
+  }
 };
 
 export default routes;
