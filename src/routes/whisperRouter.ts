@@ -25,6 +25,7 @@ type SupabaseMessage = {
 };
 
 import { createClient } from "@supabase/supabase-js";
+import { addWords } from "../words/words";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -75,7 +76,7 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
       return res.status(401).send("Unauthorized"); // Or any appropriate message
     }
 
-    let supabase_user_id = payload.sub;
+    let supabase_user_id = payload.sub.toString();
 
     console.log("Received file:", req.file.originalname);
     // const created_at_user_time = req.body.created_at_user_time;
@@ -208,6 +209,10 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
         },
       ])
       .select();
+
+    //TODO: cant do this until we actually are labelling "question" vs "answer" after transcription
+    //we only want to "addWords" to things we are confident are reading transcriptions
+    // await addWords(supabase_user_id, insertData[0].id, transcriptionResponse);
 
     // console.log("supabase Data:", insertData);
     console.log("supabase error:", insertError);
