@@ -83,10 +83,7 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
     // console.log("created_at_user_time:", created_at_user_time);
 
     const current_seconds_from_gmt = req.body.seconds_from_gmt;
-    const current_user_time_zone = req.body.user_time_zone;
-
-    // console.log("seconds_from_gmt:", current_seconds_from_gmt);
-    // console.log("user_time_zone:", current_user_time_zone);
+    const current_user_timezone = req.body.user_time_zone;
 
     // console.log("supabase_user_id:", supabase_user_id);
 
@@ -205,7 +202,7 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
           completion_attempts,
           all_completion_responses,
           current_seconds_from_gmt,
-          current_user_time_zone,
+          current_user_timezone,
         },
       ])
       .select();
@@ -214,7 +211,6 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
     //we only want to "addWords" to things we are confident are reading transcriptions
     // await addWords(supabase_user_id, insertData[0].id, transcriptionResponse);
 
-    // console.log("supabase Data:", insertData);
     console.log("supabase error:", insertError);
   } catch (error: any) {
     console.log("error:", JSON.stringify(error));
