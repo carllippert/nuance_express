@@ -57,6 +57,7 @@ app.listen(port, () => {
 app.use(Sentry.Handlers.errorHandler());
 
 // custom middleware
+// app.use(middleware.authenticateToken);
 app.use(middleware.unknownEndpoint);
 app.use(middleware.errorHandler);
 

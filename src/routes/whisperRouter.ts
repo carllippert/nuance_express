@@ -3,8 +3,8 @@ import { Router } from "express";
 import multer from "multer";
 import OpenAI from "openai";
 import fs from "fs";
-import jwt from "jsonwebtoken";
 import { Language } from "node-nlp";
+import * as middleware from "../utils/middleware";
 
 const routes = Router();
 
@@ -25,7 +25,7 @@ type SupabaseMessage = {
 };
 
 import { createClient } from "@supabase/supabase-js";
-import { addWords } from "../words/words";
+// import { addWords } from "../words/words";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -34,110 +34,86 @@ const upload = multer({
   }),
 });
 
-routes.post("/", upload.single("audioFile"), async (req, res) => {
-  try {
-    if (!req.file) throw new Error("No file uploaded");
+routes.post(
+  "/",
+  middleware.authenticateToken, //JWT management
+  upload.single("audioFile"),
+  async (req: middleware.RequestWithUserId, res) => {
+    try {
+      if (!req.file) throw new Error("No file uploaded");
 
-    //prevent wrong language halucinations
-    let detected_transcription_language = "";
-    let detected_transcription_language_confidence = 0;
+      //prevent wrong language halucinations
+      let detected_transcription_language = "";
+      let detected_transcription_language_confidence = 0;
 
-    const language = new Language(); //NLP.js
+      const language = new Language(); //NLP.js
 
-    //check if we have an authorization header
-    if (!req.headers.authorization) {
-      console.log("No authorization header");
-      return res.status(401).send("Unauthorized"); // Or any appropriate message
-    }
+      // Create a single supabase client
+      const supabase = createClient(
+        process.env.SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+      );
 
-    const token = req.headers.authorization.split(" ")[1]; // Get the token from the header
+      let supabase_user_id = req.user_id;
 
-    if (!token) {
-      console.log("No token");
-      return res.status(401).send("Unauthorized"); // Or any appropriate message
-    }
+      console.log("Received file:", req.file.originalname);
 
-    // Create a single supabase client
-    const supabase = createClient(
-      process.env.SUPABASE_URL || "",
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-    );
+      const current_seconds_from_gmt = req.body.seconds_from_gmt;
+      const current_user_timezone = req.body.user_time_zone;
 
-    const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || "no-secret";
+      console.log("supabase_user_id:", supabase_user_id);
 
-    let payload = jwt.verify(token, SUPABASE_JWT_SECRET);
+      //TODO: fetch previous messages from user ( in last hour ) limit 10
+      const recentMessages: SupabaseMessage[] = [];
 
-    // if (payload) {
-    //   console.log("payload:", payload);
-    // }
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY || "",
+      });
 
-    if (!payload) {
-      console.log("Invalid token");
-      return res.status(401).send("Unauthorized"); // Or any appropriate message
-    }
+      const fetchMessages = supabase
+        .from("messages")
+        .select()
+        .eq("user_id", supabase_user_id)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-    let supabase_user_id = payload.sub.toString();
+      const transcribeAudio = openai.audio.transcriptions.create({
+        file: fs.createReadStream(req.file.path),
+        model: "whisper-1",
+      });
 
-    console.log("Received file:", req.file.originalname);
-    // const created_at_user_time = req.body.created_at_user_time;
-    // console.log("created_at_user_time:", created_at_user_time);
+      const [messageResult, resp] = await Promise.all([
+        fetchMessages,
+        transcribeAudio,
+      ]);
 
-    const current_seconds_from_gmt = req.body.seconds_from_gmt;
-    const current_user_timezone = req.body.user_time_zone;
+      if (messageResult.data) {
+        // console.log("messageData:", messageResult.data);
+        //reverse the order so its in convo
+        recentMessages.push(...messageResult.data.reverse());
+      }
 
-    // console.log("supabase_user_id:", supabase_user_id);
+      let transcriptionResponse = resp.text;
 
-    //TODO: fetch previous messages from user ( in last hour ) limit 10
-    const recentMessages: SupabaseMessage[] = [];
+      //is it spanish or english?
+      let transcriptionGuess = language.guess(transcriptionResponse, [
+        "en",
+        "es",
+      ]);
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || "",
-    });
+      console.log("Guessing Transcription Language => ", transcriptionGuess);
 
-    const fetchMessages = supabase
-      .from("messages")
-      .select()
-      .eq("user_id", supabase_user_id)
-      .order("created_at", { ascending: false })
-      .limit(5);
+      detected_transcription_language = transcriptionGuess[0].alpha2;
+      detected_transcription_language_confidence = transcriptionGuess[0].score;
 
-    const transcribeAudio = openai.audio.transcriptions.create({
-      file: fs.createReadStream(req.file.path),
-      model: "whisper-1",
-    });
+      // console.log("resp:", JSON.stringify(resp.text));
 
-    const [messageResult, resp] = await Promise.all([
-      fetchMessages,
-      transcribeAudio,
-    ]);
+      //detect language
 
-    if (messageResult.data) {
-      // console.log("messageData:", messageResult.data);
-      //reverse the order so its in convo
-      recentMessages.push(...messageResult.data.reverse());
-    }
+      //Delete file
+      fs.unlinkSync(req.file.path);
 
-    let transcriptionResponse = resp.text;
-
-    //is it spanish or english?
-    let transcriptionGuess = language.guess(transcriptionResponse, [
-      "en",
-      "es",
-    ]);
-
-    console.log("Guessing Transcription Language => ", transcriptionGuess);
-
-    detected_transcription_language = transcriptionGuess[0].alpha2;
-    detected_transcription_language_confidence = transcriptionGuess[0].score;
-
-    // console.log("resp:", JSON.stringify(resp.text));
-
-    //detect language
-
-    //Delete file
-    fs.unlinkSync(req.file.path);
-
-    let system_prompt = `You are the worlds best spanish tutor.
+      let system_prompt = `You are the worlds best spanish tutor.
         I am reading a book in Spanish to learn the language.
           Respond to all sentences spoken in Spanish as an English translation.
           If I speak in English it is always to ask a question.
@@ -148,75 +124,76 @@ routes.post("/", upload.single("audioFile"), async (req, res) => {
             If I ask a question about a word it will be a word I said in the previous sentences I read and I may have pronounced it wrong.
             Never add who you think talked in a sentence.`;
 
-    //save responses
-    let {
-      completion_text,
-      completion_tokens,
-      total_completion_tokens,
-      detected_completion_language,
-      detected_completion_language_confidence,
-      completion_attempts,
-      all_completion_responses,
-    } = await fetchCompletion(
-      system_prompt,
-      transcriptionResponse,
-      detected_transcription_language,
-      detected_transcription_language_confidence,
-      recentMessages
-    );
+      //save responses
+      let {
+        completion_text,
+        completion_tokens,
+        total_completion_tokens,
+        detected_completion_language,
+        detected_completion_language_confidence,
+        completion_attempts,
+        all_completion_responses,
+      } = await fetchCompletion(
+        system_prompt,
+        transcriptionResponse,
+        detected_transcription_language,
+        detected_transcription_language_confidence,
+        recentMessages
+      );
 
-    //Turn Text into audio
-    const mp3 = await openai.audio.speech.create({
-      model: "tts-1",
-      voice: "nova",
-      // input: "Today is a wonderful day to build something people love!",
-      input: completion_text ? completion_text : "I don't know what to say.",
-    });
+      //Turn Text into audio
+      const mp3 = await openai.audio.speech.create({
+        model: "tts-1",
+        voice: "nova",
+        // input: "Today is a wonderful day to build something people love!",
+        input: completion_text ? completion_text : "I don't know what to say.",
+      });
 
-    //Make the buffer
-    const buffer = Buffer.from(await mp3.arrayBuffer());
+      //Make the buffer
+      const buffer = Buffer.from(await mp3.arrayBuffer());
 
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
 
-    const response = {
-      audio: buffer,
-      user_id: supabase_user_id,
-    };
+      const response = {
+        audio: buffer,
+        user_id: supabase_user_id,
+      };
 
-    res.status(200).send(response);
+      res.status(200).send(response);
 
-    //persist to supabase
-    const { data: insertData, error: insertError } = await supabase
-      .from("messages")
-      .insert([
-        {
-          user_id: supabase_user_id,
-          response_message_text: completion_text,
-          transcription_response_text: transcriptionResponse,
-          completion_tokens,
-          total_completion_tokens,
-          detected_transcription_language,
-          detected_transcription_language_confidence,
-          detected_completion_language,
-          detected_completion_language_confidence,
-          completion_attempts,
-          all_completion_responses,
-          current_seconds_from_gmt,
-          current_user_timezone,
-        },
-      ])
-      .select();
+      //persist to supabase
+      const { data: insertData, error: insertError } = await supabase
+        .from("messages")
+        .insert([
+          {
+            user_id: supabase_user_id,
+            response_message_text: completion_text,
+            transcription_response_text: transcriptionResponse,
+            completion_tokens,
+            total_completion_tokens,
+            detected_transcription_language,
+            detected_transcription_language_confidence,
+            detected_completion_language,
+            detected_completion_language_confidence,
+            completion_attempts,
+            all_completion_responses,
+            current_seconds_from_gmt,
+            current_user_timezone,
+          },
+        ])
+        .select();
 
-    //TODO: cant do this until we actually are labelling "question" vs "answer" after transcription
-    //we only want to "addWords" to things we are confident are reading transcriptions
-    // await addWords(supabase_user_id, insertData[0].id, transcriptionResponse);
+      //TODO: cant do this until we actually are labelling "question" vs "answer" after transcription
+      //we only want to "addWords" to things we are confident are reading transcriptions
+      // await addWords(supabase_user_id, insertData[0].id, transcriptionResponse);
 
-    console.log("supabase error:", insertError);
-  } catch (error: any) {
-    console.log("error:", JSON.stringify(error));
-    res.status(500).send({ error: error.message });
+      console.log("supabase error:", insertError);
+    } catch (error: any) {
+      console.log("error:", JSON.stringify(error));
+      res.status(500).send({ error: error.message });
+    }
   }
-});
+);
 
 const fetchCompletion = async (
   system_prompt: string,
