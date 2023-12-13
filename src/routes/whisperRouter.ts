@@ -120,6 +120,16 @@ routes.post(
 
       res.status(200).send(response);
 
+      //langauge detection on our output
+      let application_response_machine_scoring = await categorizeUserInput(
+        completion_text
+      );
+
+      console.log(
+        "application_response_machine_scoring:",
+        application_response_machine_scoring
+      );
+
       //persist to supabase
       const { data: insertData, error: insertError } = await supabase
         .from("messages")
@@ -135,6 +145,7 @@ routes.post(
             current_seconds_from_gmt,
             current_user_timezone,
             user_input_machine_scoring,
+            application_response_machine_scoring,
           },
         ])
         .select();

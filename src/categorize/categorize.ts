@@ -121,6 +121,7 @@ export const categorizeUserInput = async (
     // }
 
     let user_input_machine_scoring = {
+      input: transcription,
       nlp_js_language,
       nlp_js_confidence,
       gpt3_isSpanish,
