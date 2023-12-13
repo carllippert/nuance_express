@@ -3,6 +3,10 @@ type PromptConfig = {
   language: string;
   model: string;
   version_id: string;
+  problems: string;
+  improvements: string;
+  created_at: string;
+  id: string;
 };
 
 // Add your prompt configs here
@@ -15,7 +19,7 @@ const PROMPT_CONFIGS = [
   },
 ];
 
-export const newestPromptConfig = PROMPT_CONFIGS[PROMPT_CONFIGS.length - 1];
+export const newestPromptConfig  = PROMPT_CONFIGS[PROMPT_CONFIGS.length - 1];
 
 // Use the version you want
 // let { system_prompt, language, model } = PROMPT_CONFIGS.v1;

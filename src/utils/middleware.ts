@@ -31,8 +31,6 @@ export const authenticateToken = (req: RequestWithUserId, res, next) => {
 
   jwt.verify(token, SUPABASE_JWT_SECRET, (err, user) => {
     if (err) return res.sendStatus(403); // Invalid token
-    // console.log("user in middleware -> ", user);
-    console.log("user.sub in middleware -> ", user.sub.toString());
     req.user_id = user.sub.toString(); // Add the user_id payload to the request
     next(); // Continue to the next middleware/route handler
   });

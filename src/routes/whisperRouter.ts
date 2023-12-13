@@ -3,8 +3,9 @@ import { Router } from "express";
 import multer from "multer";
 import OpenAI from "openai";
 import fs from "fs";
-import { Language } from "node-nlp";
+
 import * as middleware from "../utils/middleware";
+import { categorizeUserInput } from "../categorize/categorize";
 
 const routes = Router();
 
@@ -17,15 +18,12 @@ type SupabaseMessage = {
   completion_tokens: number;
   total_completion_tokens: number;
   completion_attempts: number;
-  detected_completion_language: string;
-  detected_transcription_language: string;
-  detected_completion_language_confidence: number;
-  detected_transcription_language_confidence: number;
   all_completion_responses: any[];
+  user_input_machine_scoring?: any;
+  application_response_machine_scoring?: any;
 };
 
 import { createClient } from "@supabase/supabase-js";
-// import { addWords } from "../words/words";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -42,12 +40,6 @@ routes.post(
     try {
       if (!req.file) throw new Error("No file uploaded");
 
-      //prevent wrong language halucinations
-      let detected_transcription_language = "";
-      let detected_transcription_language_confidence = 0;
-
-      const language = new Language(); //NLP.js
-
       // Create a single supabase client
       const supabase = createClient(
         process.env.SUPABASE_URL || "",
@@ -56,62 +48,34 @@ routes.post(
 
       let supabase_user_id = req.user_id;
 
-      console.log("Received file:", req.file.originalname);
-
       const current_seconds_from_gmt = req.body.seconds_from_gmt;
       const current_user_timezone = req.body.user_time_zone;
 
-      console.log("supabase_user_id:", supabase_user_id);
-
       //TODO: fetch previous messages from user ( in last hour ) limit 10
-      const recentMessages: SupabaseMessage[] = [];
+      // const recentMessages: SupabaseMessage[] = [];
 
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY || "",
       });
 
-      const fetchMessages = supabase
-        .from("messages")
-        .select()
-        .eq("user_id", supabase_user_id)
-        .order("created_at", { ascending: false })
-        .limit(5);
+      // const fetchMessages = supabase
+      //   .from("messages")
+      //   .select()
+      //   .eq("user_id", supabase_user_id)
+      //   .order("created_at", { ascending: false })
+      //   .limit(5);
 
-      const transcribeAudio = openai.audio.transcriptions.create({
+      const resp = await openai.audio.transcriptions.create({
         file: fs.createReadStream(req.file.path),
         model: "whisper-1",
       });
 
-      const [messageResult, resp] = await Promise.all([
-        fetchMessages,
-        transcribeAudio,
-      ]);
-
-      if (messageResult.data) {
-        // console.log("messageData:", messageResult.data);
-        //reverse the order so its in convo
-        recentMessages.push(...messageResult.data.reverse());
-      }
-
       let transcriptionResponse = resp.text;
 
-      //is it spanish or english?
-      let transcriptionGuess = language.guess(transcriptionResponse, [
-        "en",
-        "es",
-      ]);
-
       //is it a question or a transcription?
-      let categoryResp = await categorize(resp.text);
+      let user_input_machine_scoring = await categorizeUserInput(resp.text);
 
-      console.log("Guessing Transcription Language => ", transcriptionGuess);
-
-      detected_transcription_language = transcriptionGuess[0].alpha2;
-      detected_transcription_language_confidence = transcriptionGuess[0].score;
-
-      // console.log("resp:", JSON.stringify(resp.text));
-
-      //detect language
+      console.log("user_input_machine_scoring:", user_input_machine_scoring);
 
       //Delete file
       fs.unlinkSync(req.file.path);
@@ -132,17 +96,9 @@ routes.post(
         completion_text,
         completion_tokens,
         total_completion_tokens,
-        detected_completion_language,
-        detected_completion_language_confidence,
         completion_attempts,
         all_completion_responses,
-      } = await fetchCompletion(
-        system_prompt,
-        transcriptionResponse,
-        detected_transcription_language,
-        detected_transcription_language_confidence,
-        recentMessages
-      );
+      } = await fetchCompletion(system_prompt, transcriptionResponse);
 
       //Turn Text into audio
       const mp3 = await openai.audio.speech.create({
@@ -174,14 +130,11 @@ routes.post(
             transcription_response_text: transcriptionResponse,
             completion_tokens,
             total_completion_tokens,
-            detected_transcription_language,
-            detected_transcription_language_confidence,
-            detected_completion_language,
-            detected_completion_language_confidence,
             completion_attempts,
             all_completion_responses,
             current_seconds_from_gmt,
             current_user_timezone,
+            user_input_machine_scoring,
           },
         ])
         .select();
@@ -201,71 +154,33 @@ routes.post(
 //TODO: should i use function calling to do the "question or transcription" detection?
 const fetchCompletion = async (
   system_prompt: string,
-  transcript: string,
-  transcription_language: string,
-  transcription_language_confidence: number,
-  recent_messages: SupabaseMessage[]
+  transcript: string
 ): Promise<{
   completion_text: string;
   completion_tokens: number;
   total_completion_tokens: number;
-  detected_completion_language: string;
-  detected_completion_language_confidence: number;
   completion_attempts: number;
   all_completion_responses: any[];
 }> => {
   console.log("fetching Completion");
-  const language = new Language(); //NLP.js
+
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY || "",
   });
 
   let gptResponse = "";
-  let detected_completion_language = "";
-  let detected_completion_language_confidence = 0;
   let completion_tokens = 0;
   let total_completion_tokens = 0;
   let completion_attempts = 0;
   let all_completion_responses = [];
 
-  // Convert SupabaseMessages from recent_messages into the format needed for openai completions api
-  // The "response_message_text" is the assistant response
-  let formattedMessages: any[] = [];
-
-  recent_messages.forEach((message) => {
-    let user_message = {
-      role: "user",
-      content: message.transcription_response_text,
-    };
-    formattedMessages.push(user_message);
-    let assistant_message = {
-      role: "assistant",
-      content: message.response_message_text,
-    };
-    formattedMessages.push(assistant_message);
-  });
-
-  let messages = [
-    { role: "system", content: system_prompt },
-    // ...formattedMessages,
-    { role: "user", content: transcript },
-  ];
-
-  // console.log("messages:", messages);
-
   for (let i = 0; i < 3; i++) {
     completion_attempts++;
     const completion = await openai.chat.completions.create({
-      // messages: messages,
       messages: [
         { role: "system", content: system_prompt },
         { role: "user", content: transcript },
       ],
-      //  {"role": "system", "content": "You are a helpful assistant."},
-      // {"role": "user", "content": "Who won the world series in 2020?"},
-      // {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-      // {"role": "user", "content": "Where was it played?"}
-      // ],
       model: "gpt-3.5-turbo",
     });
 
@@ -276,13 +191,6 @@ const fetchCompletion = async (
       ? completion.choices[0].message.content
       : "";
 
-    //detect language
-    let completionGuess = language.guess(gptResponse, ["en", "es"]);
-    detected_completion_language = completionGuess[0].alpha2;
-    detected_completion_language_confidence = completionGuess[0].score;
-
-    // console.log(completion.choices[0]);
-
     completion_tokens = completion.usage?.total_tokens
       ? completion.usage.total_tokens
       : 0;
@@ -290,35 +198,10 @@ const fetchCompletion = async (
 
     console.log("GPT3 Tokens:", completion_tokens);
     console.log("transcription:", transcript);
-    console.log("transcription_language:", transcription_language);
-    console.log(
-      "transcription_language_confidence:",
-      transcription_language_confidence
-    );
+
     console.log("Completion Response:", gptResponse);
-    console.log("dected_completion_lanauge:", detected_completion_language);
-    console.log(
-      "dected_completion_lanauge_confidence:",
-      detected_completion_language_confidence
-    );
 
-    //shutting this off for now because language detection is not good enough
     break;
-    // If user readins in spanish and we return in english ( a translation basically )
-    // if (
-    //   transcription_language === "es" &&
-    //   detected_completion_language === "en"
-    // ) {
-    //   break;
-    // }
-
-    // //if user asks a question in english and we return in english
-    // if (
-    //   transcription_language === "en" &&
-    //   detected_completion_language === "en"
-    // ) {
-    //   break;
-    // }
   }
   let obj = {
     completion_text: gptResponse ? gptResponse : "",
@@ -326,80 +209,11 @@ const fetchCompletion = async (
     total_completion_tokens: total_completion_tokens
       ? total_completion_tokens
       : 0,
-    detected_completion_language,
-    detected_completion_language_confidence,
     completion_attempts,
     all_completion_responses,
   };
 
-  // console.log("GPT Completion Response:", JSON.stringify(obj, null, 3));
-
   return obj;
-};
-
-const categorize = async (transcription: string) => {
-  try {
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || "",
-    });
-
-    const CATEGORY_SYSTEM_PROMPT = `
-    System: You are an advanced AI designed to categorize user inputs for a language learning app focused on reading books in target learning language into two distinct categories: 'Question' or 'Translation Request'. After analyzing each input, categorize it accordingly and provide a confidence score based on how certain you are about the categorization. The confidence score should be a percentage from 0% (completely uncertain) to 100% (completely certain).
-
-    When categorizing the input, consider the following criteria:
-    - If the input is a question, it typically starts with "What", "Where", "When", "Why", or "How", and seeks specific information or an explanation.
-    - If the input is a translation request, it will be a statement or passage in Spanish that does not seek information but rather needs to be translated into English.
-    
-    For each user input, provide your categorization along with the confidence score formatted as JSON in the following format:
-
-    {
-      "isQuestion": true,
-      "confidence": 0.95
-    }
-    `;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: CATEGORY_SYSTEM_PROMPT },
-        { role: "user", content: transcription },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "answer_or_translate",
-            description:
-              "Does different work depending on wether the user is asking a question or wants text translated.",
-            parameters: {
-              type: "object",
-              properties: {
-                isQuestion: {
-                  type: "boolean",
-                  description: "True if the user is asking a question.",
-                },
-                confidence: {
-                  type: "number",
-                  description:
-                    "The confidence of the model that in its response to isQuestion boolean.",
-                },
-              },
-              required: ["isQuestion", "confidence"],
-            },
-          },
-        },
-      ],
-      tool_choice: {
-        type: "function",
-        function: { name: "answer_or_translate" },
-      },
-    });
-
-    console.log("categoryies response => ", JSON.stringify(response, null, 3));
-    return response;
-  } catch (error) {
-    console.log("error:", error);
-  }
 };
 
 export default routes;

@@ -57,7 +57,6 @@ routes.post(
     try {
     
       let supabase_user_id = req.user_id;
-      console.log("supabase_user_id:", supabase_user_id);
 
       // Create a single supabase client
       const supabase = createClient(
