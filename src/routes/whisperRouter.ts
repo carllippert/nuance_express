@@ -120,41 +120,45 @@ routes.post(
 
       res.status(200).send(response);
 
-      //langauge detection on our output
-      let application_response_machine_scoring = await categorizeUserInput(
-        completion_text
-      );
+      try {
+        //langauge detection on our output
+        let application_response_machine_scoring = await categorizeUserInput(
+          completion_text
+        );
 
-      console.log(
-        "application_response_machine_scoring:",
-        application_response_machine_scoring
-      );
+        // console.log(
+        //   "application_response_machine_scoring:",
+        //   application_response_machine_scoring
+        // );
 
-      //persist to supabase
-      const { data: insertData, error: insertError } = await supabase
-        .from("messages")
-        .insert([
-          {
-            user_id: supabase_user_id,
-            response_message_text: completion_text,
-            transcription_response_text: transcriptionResponse,
-            completion_tokens,
-            total_completion_tokens,
-            completion_attempts,
-            all_completion_responses,
-            current_seconds_from_gmt,
-            current_user_timezone,
-            user_input_machine_scoring,
-            application_response_machine_scoring,
-          },
-        ])
-        .select();
+        //persist to supabase
+        const { data: insertData, error: insertError } = await supabase
+          .from("messages")
+          .insert([
+            {
+              user_id: supabase_user_id,
+              response_message_text: completion_text,
+              transcription_response_text: transcriptionResponse,
+              completion_tokens,
+              total_completion_tokens,
+              completion_attempts,
+              all_completion_responses,
+              current_seconds_from_gmt,
+              current_user_timezone,
+              user_input_machine_scoring,
+              application_response_machine_scoring,
+            },
+          ])
+          .select();
+      } catch (error: any) {
+        console.log("error in message persistance:", JSON.stringify(error));
+      }
 
       //TODO: cant do this until we actually are labelling "question" vs "answer" after transcription
       //we only want to "addWords" to things we are confident are reading transcriptions
       // await addWords(supabase_user_id, insertData[0].id, transcriptionResponse);
 
-      console.log("supabase error:", insertError);
+      // console.log("supabase error:", insertError);
     } catch (error: any) {
       console.log("error:", JSON.stringify(error));
       res.status(500).send({ error: error.message });
