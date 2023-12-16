@@ -27,8 +27,13 @@ export const addWords = async (
 
     let words = spanishPhrase.split(" ");
 
-    //remove punctuation
-    words = words.map((word) => word.replace(/[^a-zA-Z0-9]/g, ""));
+    //TODO: Name detection -> keep the names in the database but don't use them in flashcards
+    //We can use them to make better content because names make things more personal
+
+    //remove punctuation but keep Spanish characters
+    words = words.map((word) =>
+      word.replace(/[^a-zA-Z0-9áéíóúñüÁÉÍÓÚÑÜ]/g, "")
+    );
     //remove empty strings
     words = words.filter((word) => word.trim() !== "");
 

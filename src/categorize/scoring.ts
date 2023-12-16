@@ -4,9 +4,29 @@ import { Language } from "node-nlp";
 import { CURRENT_CAT_PROMPT } from "./prompts/categorizerPrompt";
 import { detect, detectAll } from "tinyld";
 
+export type TinyLDLanguageResponse = {
+  lang: string;
+  accuracy: number;
+};
+
+export type UserInputMachineScoring = {
+  input: string;
+  nlp_js_language: string;
+  nlp_js_confidence: number;
+  gpt3_isSpanish: boolean;
+  gpt3_isSpanish_confidence: number;
+  gpt3_prompt_verison_id: string;
+  tinyld_language: string;
+  tinyld_all_languages: TinyLDLanguageResponse[];
+  spanish_points: number;
+  english_points: number;
+  low_cost_spanish_points: number;
+  low_cost_english_points: number;
+};
+
 export const categorizeUserInput = async (
   transcription: string
-): Promise<any> => {
+): Promise<UserInputMachineScoring> => {
   try {
     //NLP.js
     const language = new Language(); //NLP.js

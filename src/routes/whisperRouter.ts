@@ -5,7 +5,10 @@ import OpenAI from "openai";
 import fs from "fs";
 
 import * as middleware from "../utils/middleware";
-import { categorizeUserInput } from "../categorize/categorize";
+import {
+  UserInputMachineScoring,
+  categorizeUserInput,
+} from "../categorize/scoring";
 
 const routes = Router();
 
@@ -24,6 +27,8 @@ type SupabaseMessage = {
 };
 
 import { createClient } from "@supabase/supabase-js";
+import { addWords } from "../words/words";
+import { readSpanishWords } from "../categorize/evaluating";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -68,6 +73,7 @@ routes.post(
       const resp = await openai.audio.transcriptions.create({
         file: fs.createReadStream(req.file.path),
         model: "whisper-1",
+        language: "es",
       });
 
       let transcriptionResponse = resp.text;
@@ -150,6 +156,17 @@ routes.post(
             },
           ])
           .select();
+
+        //if we are confident its a translation not a question
+        if (readSpanishWords(user_input_machine_scoring)) {
+          await addWords(
+            supabase_user_id,
+            insertData[0].id,
+            transcriptionResponse
+          );
+        } else {
+          console.log("we do not beleive we are reading spanish words");
+        }
       } catch (error: any) {
         console.log("error in message persistance:", JSON.stringify(error));
       }
