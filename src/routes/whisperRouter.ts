@@ -73,7 +73,7 @@ routes.post(
       const resp = await openai.audio.transcriptions.create({
         file: fs.createReadStream(req.file.path),
         model: "whisper-1",
-        language: "es",
+        // language: "es",
       });
 
       let transcriptionResponse = resp.text;
