@@ -55,6 +55,11 @@ routes.post(
 
       const current_seconds_from_gmt = req.body.seconds_from_gmt;
       const current_user_timezone = req.body.user_time_zone;
+      const is_question = req.body.is_question;
+
+      console.log("is Question ? -> ", is_question); 
+
+
 
       //TODO: fetch previous messages from user ( in last hour ) limit 10
       // const recentMessages: SupabaseMessage[] = [];
@@ -70,11 +75,16 @@ routes.post(
       //   .order("created_at", { ascending: false })
       //   .limit(5);
 
-      const resp = await openai.audio.transcriptions.create({
-        file: fs.createReadStream(req.file.path),
-        model: "whisper-1",
-        // language: "es",
-      });
+      // const resp = await openai.audio.transcriptions.create({
+      //   file: fs.createReadStream(req.file.path),
+      //   model: "whisper-1",
+      //   // language: "es",
+      // });
+
+      const resp = await openai.audio.translations.create({
+        model: "whisper-1", 
+        file: fs.createReadStream(req.path), 
+      })
 
       let transcriptionResponse = resp.text;
 
@@ -98,20 +108,21 @@ routes.post(
             Never add who you think talked in a sentence.`;
 
       //save responses
-      let {
-        completion_text,
-        completion_tokens,
-        total_completion_tokens,
-        completion_attempts,
-        all_completion_responses,
-      } = await fetchCompletion(system_prompt, transcriptionResponse);
+      // let {
+      //   completion_text,
+      //   completion_tokens,
+      //   total_completion_tokens,
+      //   completion_attempts,
+      //   all_completion_responses,
+      // } = await fetchCompletion(system_prompt, transcriptionResponse);
 
       //Turn Text into audio
       const mp3 = await openai.audio.speech.create({
         model: "tts-1",
         voice: "nova",
         // input: "Today is a wonderful day to build something people love!",
-        input: completion_text ? completion_text : "I don't know what to say.",
+        // input: completion_text ? completion_text : "I don't know what to say.",
+        input: transcriptionResponse, 
       });
 
       //Make the buffer
@@ -129,7 +140,8 @@ routes.post(
       try {
         //langauge detection on our output
         let application_response_machine_scoring = await categorizeUserInput(
-          completion_text
+          // completion_text
+          transcriptionResponse
         );
 
         // console.log(
@@ -143,12 +155,13 @@ routes.post(
           .insert([
             {
               user_id: supabase_user_id,
-              response_message_text: completion_text,
+              // response_message_text: completion_text,
+              response_message: transcriptionResponse, 
               transcription_response_text: transcriptionResponse,
-              completion_tokens,
-              total_completion_tokens,
-              completion_attempts,
-              all_completion_responses,
+              // completion_tokens,
+              // total_completion_tokens,
+              // completion_attempts,
+              // all_completion_responses,
               current_seconds_from_gmt,
               current_user_timezone,
               user_input_machine_scoring,
@@ -247,5 +260,9 @@ const fetchCompletion = async (
 
   return obj;
 };
+
+const translate = () => {
+
+}
 
 export default routes;
