@@ -75,54 +75,73 @@ routes.post(
       //   .order("created_at", { ascending: false })
       //   .limit(5);
 
-      // const resp = await openai.audio.transcriptions.create({
+      const transcript = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(req.file.path),
+        model: "whisper-1",
+        language: "es",
+        prompt: "¿Qué pasa? - dijo Ron"
+      });
+
+      // const resp = await openai.audio.translations.create({
+      //   model: "whisper-1", 
       //   file: fs.createReadStream(req.file.path),
-      //   model: "whisper-1",
-      //   // language: "es",
-      // });
+      //   prompt: "Whats up Harry? - said Ron"
+      // })
 
-      const resp = await openai.audio.translations.create({
-        model: "whisper-1", 
-        file: fs.createReadStream(req.path), 
-      })
+      // const resp = await openai.audio.translations.create({
+      //   model: "whisper-1", 
+      //   file: fs.createReadStream(req.file.path),
+      // })
 
-      let transcriptionResponse = resp.text;
+      // console.log("resp", JSON.stringify(resp, null, 3))
+      console.log("transctiption", JSON.stringify(transcript, null, 3)); 
+
+      // let translationResponse = resp.text;
+      let transcriptionResponse = transcript.text; 
+
+      // console.log("Translation Response:", translationResponse);
+      console.log("Transcription Response", transcriptionResponse)
 
       //is it a question or a transcription?
-      let user_input_machine_scoring = await categorizeUserInput(resp.text);
+      let user_input_machine_scoring = await categorizeUserInput(transcriptionResponse);
 
       console.log("user_input_machine_scoring:", user_input_machine_scoring);
 
       //Delete file
       fs.unlinkSync(req.file.path);
 
-      let system_prompt = `You are the worlds best spanish tutor.
-        I am reading a book in Spanish to learn the language.
-          Respond to all sentences spoken in Spanish as an English translation.
-          If I speak in English it is always to ask a question.
-          You should answer my question in English as my friendly Spanish tutor.
-            Never ask a follow up question or ask if I need more help.
-            Never try to end the conversation. Only answer or translate.
-            If the Spanish is not very good just expect I am bad at reading and try your best to translate instead of asking for help.
-            If I ask a question about a word it will be a word I said in the previous sentences I read and I may have pronounced it wrong.
-            Never add who you think talked in a sentence.`;
+      // let system_prompt = `You are the worlds best spanish tutor.
+      //   I am reading a book in Spanish to learn the language.
+      //     Respond to all sentences spoken in Spanish as an English translation.
+      //     If I speak in English it is always to ask a question.
+      //     You should answer my question in English as my friendly Spanish tutor.
+      //       Never ask a follow up question or ask if I need more help.
+      //       Never try to end the conversation. Only answer or translate.
+      //       If the Spanish is not very good just expect I am bad at reading and try your best to translate instead of asking for help.
+      //       If I ask a question about a word it will be a word I said in the previous sentences I read and I may have pronounced it wrong.
+      //       Never add who you think talked in a sentence.`;
+
+      let translate_prompt = `
+        Translate this sentence to english from spanish exactly leaving nothing out and adding nothing.
+        User proper pronunciation. 
+      `
 
       //save responses
-      // let {
-      //   completion_text,
-      //   completion_tokens,
-      //   total_completion_tokens,
-      //   completion_attempts,
-      //   all_completion_responses,
-      // } = await fetchCompletion(system_prompt, transcriptionResponse);
+      let {
+        completion_text,
+        completion_tokens,
+        total_completion_tokens,
+        completion_attempts,
+        all_completion_responses,
+      } = await fetchCompletion(translate_prompt, transcriptionResponse);
 
       //Turn Text into audio
       const mp3 = await openai.audio.speech.create({
         model: "tts-1",
         voice: "nova",
         // input: "Today is a wonderful day to build something people love!",
-        // input: completion_text ? completion_text : "I don't know what to say.",
-        input: transcriptionResponse, 
+        input: completion_text ? completion_text : "I don't know what to say.",
+        // input: transcriptionResponse, 
       });
 
       //Make the buffer
@@ -155,13 +174,12 @@ routes.post(
           .insert([
             {
               user_id: supabase_user_id,
-              // response_message_text: completion_text,
-              response_message: transcriptionResponse, 
+              response_message_text: completion_text,
               transcription_response_text: transcriptionResponse,
-              // completion_tokens,
-              // total_completion_tokens,
-              // completion_attempts,
-              // all_completion_responses,
+              completion_tokens,
+              total_completion_tokens,
+              completion_attempts,
+              all_completion_responses,
               current_seconds_from_gmt,
               current_user_timezone,
               user_input_machine_scoring,
