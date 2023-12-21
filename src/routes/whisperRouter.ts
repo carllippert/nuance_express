@@ -16,6 +16,7 @@ type SupabaseMessage = {
   id: string;
   created_at: string;
   user_id: string;
+  message_classification: string;
   response_message_text: string;
   transcription_response_text: string;
   completion_tokens: number;
@@ -57,74 +58,53 @@ routes.post(
       const current_user_timezone = req.body.user_time_zone;
       const is_question = req.body.is_question;
 
-      console.log("is Question ? -> ", is_question); 
+      //Top Level State
+      let user_message: string;
+      let prompt: string;
 
-
-
-      //TODO: fetch previous messages from user ( in last hour ) limit 10
-      // const recentMessages: SupabaseMessage[] = [];
+      console.log("is Question ? -> ", is_question);
 
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY || "",
       });
 
-      // const fetchMessages = supabase
-      //   .from("messages")
-      //   .select()
-      //   .eq("user_id", supabase_user_id)
-      //   .order("created_at", { ascending: false })
-      //   .limit(5);
+      if (is_question) {
+        //TODO: answer question
+        const transcript = await openai.audio.transcriptions.create({
+          file: fs.createReadStream(req.file.path),
+          model: "whisper-1",
+          language: "en",
+          prompt: `What does "quirro" mean in spanish?`
+        });
 
-      const transcript = await openai.audio.transcriptions.create({
-        file: fs.createReadStream(req.file.path),
-        model: "whisper-1",
-        language: "es",
-        prompt: "¿Qué pasa? - dijo Ron"
-      });
+        user_message = transcript.text;
 
-      // const resp = await openai.audio.translations.create({
-      //   model: "whisper-1", 
-      //   file: fs.createReadStream(req.file.path),
-      //   prompt: "Whats up Harry? - said Ron"
-      // })
+        //set prompt
+        prompt = `You are the worlds best spanish tutor.
+           I am reading books in Spanish to learn the language.
+           You should answer my question in English as my friendly Spanish tutor.
+            Never ask a follow up question or ask if I need more help.
+            Never try to end the conversation. Only answer the question. 
+            If I ask a question about a word it will be a word I said in the previous sentences I read and I may have pronounced it wrong.`;
 
-      // const resp = await openai.audio.translations.create({
-      //   model: "whisper-1", 
-      //   file: fs.createReadStream(req.file.path),
-      // })
+      } else {
+        //Translate and send back
+        const transcript = await openai.audio.transcriptions.create({
+          file: fs.createReadStream(req.file.path),
+          model: "whisper-1",
+          language: "es",
+          prompt: "¿Qué pasa? - dijo Ron"
+        });
 
-      // console.log("resp", JSON.stringify(resp, null, 3))
-      console.log("transctiption", JSON.stringify(transcript, null, 3)); 
 
-      // let translationResponse = resp.text;
-      let transcriptionResponse = transcript.text; 
+        user_message = transcript.text;
 
-      // console.log("Translation Response:", translationResponse);
-      console.log("Transcription Response", transcriptionResponse)
-
-      //is it a question or a transcription?
-      let user_input_machine_scoring = await categorizeUserInput(transcriptionResponse);
-
-      console.log("user_input_machine_scoring:", user_input_machine_scoring);
-
-      //Delete file
-      fs.unlinkSync(req.file.path);
-
-      // let system_prompt = `You are the worlds best spanish tutor.
-      //   I am reading a book in Spanish to learn the language.
-      //     Respond to all sentences spoken in Spanish as an English translation.
-      //     If I speak in English it is always to ask a question.
-      //     You should answer my question in English as my friendly Spanish tutor.
-      //       Never ask a follow up question or ask if I need more help.
-      //       Never try to end the conversation. Only answer or translate.
-      //       If the Spanish is not very good just expect I am bad at reading and try your best to translate instead of asking for help.
-      //       If I ask a question about a word it will be a word I said in the previous sentences I read and I may have pronounced it wrong.
-      //       Never add who you think talked in a sentence.`;
-
-      let translate_prompt = `
+        //set prompt
+        prompt = `
         Translate this sentence to english from spanish exactly leaving nothing out and adding nothing.
         User proper pronunciation. 
       `
+      }
 
       //save responses
       let {
@@ -133,7 +113,15 @@ routes.post(
         total_completion_tokens,
         completion_attempts,
         all_completion_responses,
-      } = await fetchCompletion(translate_prompt, transcriptionResponse);
+      } = await fetchCompletion(prompt, user_message);
+
+      //is it english or spanish?
+      let user_input_machine_scoring = await categorizeUserInput(user_message);
+
+      console.log("user_input_machine_scoring:", user_input_machine_scoring);
+
+      //Delete file
+      fs.unlinkSync(req.file.path);
 
       //Turn Text into audio
       const mp3 = await openai.audio.speech.create({
@@ -159,23 +147,18 @@ routes.post(
       try {
         //langauge detection on our output
         let application_response_machine_scoring = await categorizeUserInput(
-          // completion_text
-          transcriptionResponse
+          completion_text,
         );
-
-        // console.log(
-        //   "application_response_machine_scoring:",
-        //   application_response_machine_scoring
-        // );
 
         //persist to supabase
         const { data: insertData, error: insertError } = await supabase
           .from("messages")
           .insert([
             {
+              message_classification: is_question ? "question" : "reading",
               user_id: supabase_user_id,
               response_message_text: completion_text,
-              transcription_response_text: transcriptionResponse,
+              transcription_response_text: user_message,
               completion_tokens,
               total_completion_tokens,
               completion_attempts,
@@ -188,16 +171,17 @@ routes.post(
           ])
           .select();
 
+        //TODO add back word updates but do it differently
         //if we are confident its a translation not a question
-        if (readSpanishWords(user_input_machine_scoring)) {
-          await addWords(
-            supabase_user_id,
-            insertData[0].id,
-            transcriptionResponse
-          );
-        } else {
-          console.log("we do not beleive we are reading spanish words");
-        }
+        // if (readSpanishWords(user_input_machine_scoring)) {
+        //   await addWords(
+        //     supabase_user_id,
+        //     insertData[0].id,
+        //     transcriptionResponse
+        //   );
+        // } else {
+        //   console.log("we do not beleive we are reading spanish words");
+        // }
       } catch (error: any) {
         console.log("error in message persistance:", JSON.stringify(error));
       }
