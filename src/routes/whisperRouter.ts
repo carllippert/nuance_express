@@ -1,4 +1,4 @@
-import express, { Router } from "express";
+import { Router } from "express";
 
 import multer from "multer";
 import OpenAI from "openai";
@@ -27,11 +27,9 @@ type SupabaseMessage = {
   application_response_machine_scoring?: any;
 };
 
-routes.use(express.json());
-
 import { createClient } from "@supabase/supabase-js";
-import { addWords } from "../words/words";
-import { readSpanishWords } from "../categorize/evaluating";
+// import { addWords } from "../words/words";
+// import { readSpanishWords } from "../categorize/evaluating";
 
 const upload = multer({
   storage: multer.diskStorage({
