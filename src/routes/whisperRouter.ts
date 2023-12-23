@@ -56,9 +56,8 @@ routes.post(
 
       const current_seconds_from_gmt = req.body.seconds_from_gmt;
       const current_user_timezone = req.body.user_time_zone;
-      const is_question = req.body.is_question; 
-
       console.log("Body:", req.body);
+      const is_question = Boolean(req.body.is_question); 
 
       console.log(typeof req.body.is_question)
       //Top Level State
