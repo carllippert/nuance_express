@@ -69,6 +69,7 @@ routes.post(
       });
 
       if (is_question) {
+        console.log("answering question");
         //TODO: answer question
         const transcript = await openai.audio.transcriptions.create({
           file: fs.createReadStream(req.file.path),
@@ -88,6 +89,7 @@ routes.post(
             If I ask a question about a word it will be a word I said in the previous sentences I read and I may have pronounced it wrong.`;
 
       } else {
+        console.log("translating");
         //Translate and send back
         const transcript = await openai.audio.transcriptions.create({
           file: fs.createReadStream(req.file.path),
@@ -118,7 +120,7 @@ routes.post(
       //is it english or spanish?
       let user_input_machine_scoring = await categorizeUserInput(user_message);
 
-      console.log("user_input_machine_scoring:", user_input_machine_scoring);
+      // console.log("user_input_machine_scoring:", user_input_machine_scoring);
 
       //Delete file
       fs.unlinkSync(req.file.path);
