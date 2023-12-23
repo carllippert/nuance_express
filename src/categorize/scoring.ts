@@ -34,7 +34,7 @@ export const categorizeUserInput = async (
     //is it spanish or english?
     let transcriptionGuess = language.guess(transcription, ["en", "es"]);
 
-    console.log("Guessing Transcription Language => ", transcriptionGuess);
+    // //console.log("Guessing Transcription Language => ", transcriptionGuess);
 
     let nlp_js_language = transcriptionGuess[0].alpha2;
     let nlp_js_confidence = transcriptionGuess[0].score;
@@ -84,12 +84,12 @@ export const categorizeUserInput = async (
     //   },
     // });
 
-    // console.log("categories response => ", JSON.stringify(response, null, 3));
+    //console.log("categories response => ", JSON.stringify(response, null, 3));
 
     // let args = response.choices[0].message?.tool_calls[0]?.function.arguments;
     // let parsedArgs = JSON.parse(args);
 
-    // console.log(parsedArgs);
+    //console.log(parsedArgs);
 
     // let gpt3_isSpanish = parsedArgs.isSpanish;
     // let gpt3_isSpanish_confidence = parsedArgs.confidence;
@@ -128,12 +128,12 @@ export const categorizeUserInput = async (
     //grab points from the list
     tinyld_all_languages.forEach((language) => {
       if (language.lang === "es") {
-        console.log("adding partial points for spanish");
+        // //console.log("adding partial points for spanish");
         spanish_points += language.accuracy;
         low_cost_spanish_points += language.accuracy;
       }
       if (language.lang === "en") {
-        console.log("adding partial points for english");
+        // //console.log("adding partial points for english");
         english_points += language.accuracy;
         low_cost_english_points += language.accuracy;
       }
@@ -157,6 +157,6 @@ export const categorizeUserInput = async (
 
     return user_input_machine_scoring;
   } catch (error) {
-    console.log("error in categorizer:", error);
+    // //console.log("error in categorizer:", error);
   }
 };

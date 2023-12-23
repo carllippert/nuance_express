@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import whisperRoute from "./routes/whisperRouter";
-// import streamingWhisper from "./routes/streamingWhisper";
+import wordRoute from "./routes/wordRouter";
 import * as middleware from "./utils/middleware";
 
 import * as Sentry from "@sentry/node";
@@ -47,6 +47,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/upload", whisperRoute);
+app.use("/words", wordRoute)
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);

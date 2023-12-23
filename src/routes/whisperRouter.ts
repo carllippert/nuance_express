@@ -221,6 +221,9 @@ const fetchCompletion = async (
   let completion_attempts = 0;
   let all_completion_responses = [];
 
+  console.log("transcript:", transcript);
+  console.log("system_prompt:", system_prompt);
+
   for (let i = 0; i < 3; i++) {
     completion_attempts++;
     const completion = await openai.chat.completions.create({
