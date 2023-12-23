@@ -57,7 +57,7 @@ routes.post(
       const current_seconds_from_gmt = req.body.seconds_from_gmt;
       const current_user_timezone = req.body.user_time_zone;
       console.log("Body:", req.body);
-      const is_question = Boolean(req.body.is_question); 
+      const is_question = req.body.is_question;
 
       console.log(typeof req.body.is_question)
       //Top Level State
@@ -70,7 +70,7 @@ routes.post(
         apiKey: process.env.OPENAI_API_KEY || "",
       });
 
-      if (is_question) {
+      if (is_question == "true") {
         console.log("answering question");
         //TODO: answer question
         const transcript = await openai.audio.transcriptions.create({
