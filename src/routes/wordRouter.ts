@@ -40,7 +40,7 @@ const idempotentAddWords = async (user_id: string) => {
                 .from("messages")
                 .select("*")
                 .eq("user_id", user_id)
-                .eq("words_processes", false)
+                .eq("words_processed", false)
                 .limit(5);  
 
         if (messages_error) {

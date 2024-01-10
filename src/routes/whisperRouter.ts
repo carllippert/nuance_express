@@ -70,6 +70,7 @@ routes.post(
         apiKey: process.env.OPENAI_API_KEY || "",
       });
 
+      //body values come in as strings
       if (is_question == "true") {
         console.log("answering question");
         //TODO: answer question

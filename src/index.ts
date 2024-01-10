@@ -2,6 +2,8 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import whisperRoute from "./routes/whisperRouter";
 import wordRoute from "./routes/wordRouter";
+import promoRoute from "./routes/promoCodes";
+
 import * as middleware from "./utils/middleware";
 
 import * as Sentry from "@sentry/node";
@@ -43,11 +45,12 @@ app.use(express.json());
 app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
-  res.status(200).send("Hello, TypeScript Express!");
+  res.status(200).send("Hello from Nuance Express!");
 });
 
-app.use("/upload", whisperRoute);
+app.use("/upload", whisperRoute)
 app.use("/words", wordRoute)
+app.use("/promo", promoRoute)
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
