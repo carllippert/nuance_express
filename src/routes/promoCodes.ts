@@ -14,6 +14,7 @@ type PromoCode = {
     good_until: string | null;
     locked_to_email: string | null;
     used: boolean;
+    duration: string;
 }
 
 type Entitlement = {
@@ -104,11 +105,10 @@ routes.post("/", middleware.authenticateToken, //JWT management
 
             if (!data) throw new Error("No unused promo code found");
 
-
             let supabase_user_id = req.user_id
 
             console.log("supabase_user_id", supabase_user_id)
-            let duration = "monthly"
+            let duration = data.duration
 
             const options = {
                 method: 'POST',
@@ -138,7 +138,8 @@ routes.post("/", middleware.authenticateToken, //JWT management
             const { data: updatedData, error: updateError } = await supabase
                 .from("promo_codes")
                 .update({
-                    used: true, used_at: new Date().toISOString(),
+                    used: true, 
+                    used_at: new Date().toISOString(),
                     used_by_user_id: supabase_user_id,
                     promo_ends_at: new Date(new Date().getTime() + 31 * 24 * 60 * 60 * 1000).toDateString()
                 })
