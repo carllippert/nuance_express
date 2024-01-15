@@ -96,6 +96,8 @@ routes.post("/", middleware.authenticateToken, //JWT management
                 .select("*")
                 .eq("promo_code", promoCode)
                 .eq("used", false)
+                .order('created_at', { ascending: false })
+                .limit(1)
                 .single();
 
             if (error) {
