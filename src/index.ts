@@ -3,7 +3,6 @@ import cors from "cors";
 import whisperRoute from "./routes/whisperRouter";
 import wordRoute from "./routes/wordRouter";
 import promoRoute from "./routes/promoCodes";
-
 import * as middleware from "./utils/middleware";
 
 import * as Sentry from "@sentry/node";
