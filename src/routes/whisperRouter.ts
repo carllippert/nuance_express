@@ -3,6 +3,7 @@ import { Router } from "express";
 import multer from "multer";
 import OpenAI from "openai";
 import fs from "fs";
+import { PostHog } from 'posthog-node'
 
 import * as middleware from "../utils/middleware";
 import {
@@ -31,6 +32,11 @@ import { createClient } from "@supabase/supabase-js";
 // import { addWords } from "../words/words";
 // import { readSpanishWords } from "../categorize/evaluating";
 
+
+let transciption_model = "whisper-1";
+let text_to_speech_model = "tts-1";
+let llm_model = "gpt-3.5-turbo";
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: "public/uploads",
@@ -57,7 +63,7 @@ routes.post(
       const current_seconds_from_gmt = req.body.seconds_from_gmt;
       const current_user_timezone = req.body.user_time_zone;
       console.log("Body:", req.body);
-      const is_question = req.body.is_question;
+      let is_question = req.body.is_question;
 
       console.log(typeof req.body.is_question)
       //Top Level State
@@ -72,11 +78,12 @@ routes.post(
 
       //body values come in as strings
       if (is_question == "true") {
+        is_question = true;
         console.log("answering question");
         //TODO: answer question
         const transcript = await openai.audio.transcriptions.create({
           file: fs.createReadStream(req.file.path),
-          model: "whisper-1",
+          model: transciption_model,
           language: "en",
           prompt: `What does "quirro" mean in spanish?`
         });
@@ -96,7 +103,7 @@ routes.post(
         //Translate and send back
         const transcript = await openai.audio.transcriptions.create({
           file: fs.createReadStream(req.file.path),
-          model: "whisper-1",
+          model: transciption_model,
           language: "es",
           prompt: "¿Qué pasa? - dijo Ron"
         });
@@ -107,7 +114,7 @@ routes.post(
         //set prompt
         prompt = `
         Translate this sentence to english from spanish exactly leaving nothing out and adding nothing.
-        User proper pronunciation. 
+        Use proper pronunciation. 
       `
       }
 
@@ -130,7 +137,7 @@ routes.post(
 
       //Turn Text into audio
       const mp3 = await openai.audio.speech.create({
-        model: "tts-1",
+        model: text_to_speech_model,
         voice: "nova",
         // input: "Today is a wonderful day to build something people love!",
         input: completion_text ? completion_text : "I don't know what to say.",
@@ -195,6 +202,25 @@ routes.post(
       //we only want to "addWords" to things we are confident are reading transcriptions
       // await addWords(supabase_user_id, insertData[0].id, transcriptionResponse);
 
+      try {
+        const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
+
+        posthog.capture({
+          distinctId: supabase_user_id.toUpperCase(),
+          event: "message_received",
+          properties: {
+            message_classification: is_question ? "question" : "reading",
+            transciption_model,
+            text_to_speech_model,
+            llm_model,
+            total_completion_tokens,
+          },
+        });
+
+      } catch (error: any) {
+        console.log("error in posthog event capture:", JSON.stringify(error));
+      }
+
       // console.log("supabase error:", insertError);
     } catch (error: any) {
       console.log("error:", JSON.stringify(error));
@@ -236,7 +262,7 @@ const fetchCompletion = async (
         { role: "system", content: system_prompt },
         { role: "user", content: transcript },
       ],
-      model: "gpt-3.5-turbo",
+      model: llm_model,
     });
 
     all_completion_responses.push(completion);
