@@ -5,12 +5,14 @@ import wordRoute from "./routes/wordRouter";
 import promoRoute from "./routes/promoCodes";
 import * as middleware from "./utils/middleware";
 
+
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
 
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
+
 
 const app = express();
 const port = process.env.PORT || 3000;
