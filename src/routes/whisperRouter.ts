@@ -65,7 +65,15 @@ routes.post(
       const current_user_timezone = req.body.user_time_zone;
       console.log("Body:", req.body);
       console.log("old typeof is_question: ", typeof req.body.is_question)
-      let is_question = Boolean(req.body.is_question);
+
+      // let is_question = Boolean(req.body.is_question);
+      let is_question: Boolean;
+
+      if (req.body.is_question == "true") {
+        is_question = Boolean(true);
+      } else {
+        is_question = Boolean(false);
+      }
 
 
       // if (is_question == "true") {
