@@ -17,7 +17,8 @@ type SupabaseMessage = {
   id: string;
   created_at: string;
   user_id: string;
-  message_classification: string;
+  message_input_classification: string;
+  message_input_classifier: string;
   response_message_text: string;
   transcription_response_text: string;
   completion_tokens: number;
@@ -64,8 +65,14 @@ routes.post(
       const current_user_timezone = req.body.user_time_zone;
       console.log("Body:", req.body);
       let is_question = req.body.is_question;
+      console.log("old typeof is_question: ", typeof req.body.is_question)
+      if (is_question == "true") {
+        //change to boolean
+        is_question = true;
+      }
+      console.log("new typeof is_question: ", typeof req.body.is_question)
+      console.log("is_question", is_question)
 
-      console.log(typeof req.body.is_question)
       //Top Level State
       let user_message: string;
       let prompt: string;
@@ -77,8 +84,7 @@ routes.post(
       });
 
       //body values come in as strings
-      if (is_question == "true") {
-        is_question = true;
+      if (is_question) {
         console.log("answering question");
         //TODO: answer question
         const transcript = await openai.audio.transcriptions.create({
@@ -108,14 +114,12 @@ routes.post(
           prompt: "¿Qué pasa? - dijo Ron"
         });
 
-
         user_message = transcript.text;
 
         //set prompt
         prompt = `
         Translate this sentence to english from spanish exactly leaving nothing out and adding nothing.
-        Use proper pronunciation. 
-      `
+        Use proper pronunciation.`
       }
 
       //save responses
@@ -129,8 +133,6 @@ routes.post(
 
       //is it english or spanish?
       let user_input_machine_scoring = await categorizeUserInput(user_message);
-
-      // console.log("user_input_machine_scoring:", user_input_machine_scoring);
 
       //Delete file
       fs.unlinkSync(req.file.path);
@@ -167,7 +169,8 @@ routes.post(
           .from("messages")
           .insert([
             {
-              message_classification: is_question ? "question" : "reading",
+              message_input_classification: is_question ? "question" : "reading",
+              message_input_classifier: "in_app_button",  //in future maybe it can be automatic  with AI
               user_id: supabase_user_id,
               response_message_text: completion_text,
               transcription_response_text: user_message,
@@ -209,7 +212,8 @@ routes.post(
           distinctId: supabase_user_id.toUpperCase(),
           event: "message_received",
           properties: {
-            message_classification: is_question ? "question" : "reading",
+            message_input_classification: is_question ? "question" : "reading",
+            message_input_classifier: "in_app_button",  //in future maybe it can be automatic  with AI
             transciption_model,
             text_to_speech_model,
             llm_model,
@@ -297,8 +301,5 @@ const fetchCompletion = async (
   return obj;
 };
 
-const translate = () => {
-
-}
 
 export default routes;
