@@ -64,13 +64,15 @@ routes.post(
       const current_seconds_from_gmt = req.body.seconds_from_gmt;
       const current_user_timezone = req.body.user_time_zone;
       console.log("Body:", req.body);
-      let is_question = req.body.is_question;
       console.log("old typeof is_question: ", typeof req.body.is_question)
-      if (is_question == "true") {
-        //change to boolean
-        is_question = true;
-      }
-      console.log("new typeof is_question: ", typeof req.body.is_question)
+      let is_question = Boolean(req.body.is_question);
+
+
+      // if (is_question == "true") {
+      //   //change to boolean
+      //   is_question = true;
+      // }
+      console.log("new typeof is_question: ", typeof is_question)
       console.log("is_question", is_question)
 
       //Top Level State
