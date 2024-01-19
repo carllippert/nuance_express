@@ -8,9 +8,6 @@ const routes = Router();
 routes.get("/", middleware.authenticateToken, //JWT management
     async (req: middleware.RequestWithUserId, res) => {
         try {
-
-            console.log(req.body);
-
             // Create a single supabase client
             const supabase = createClient(
                 process.env.SUPABASE_URL || "",
@@ -30,9 +27,10 @@ routes.get("/", middleware.authenticateToken, //JWT management
                 throw new Error("Error getting word activity" + error.message);
             }
 
+            data = data[0];
             console.log("data", data);
 
-            res.status(200).send({ data });
+            res.status(200).send(data);
 
         } catch (error) {
             console.log("Error:", error);
