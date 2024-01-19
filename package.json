@@ -29,6 +29,7 @@
     "@sentry/cli": "^2.23.0",
     "@sentry/node": "^7.85.0",
     "@sentry/profiling-node": "^1.2.6",
+    "@supabase/postgrest-js": "^1.9.2",
     "@supabase/supabase-js": "^2.39.0",
     "@types/express-validator": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.5",

@@ -1,10 +1,10 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import whisperRoute from "./routes/whisperRouter";
-import wordRoute from "./routes/wordRouter";
+import processMessageRoute from "./routes/processMessages";
+import wordActivityRoute from "./routes/wordActivity";
 import promoRoute from "./routes/promoCodes";
 import * as middleware from "./utils/middleware";
-
 
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
@@ -12,7 +12,6 @@ import { ProfilingIntegration } from "@sentry/profiling-node";
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
-
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -50,7 +49,8 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/upload", whisperRoute)
-app.use("/words", wordRoute)
+app.use("/word-activity", wordActivityRoute)
+app.use("/process-messages", processMessageRoute)
 app.use("/promo", promoRoute)
 
 app.listen(port, () => {
