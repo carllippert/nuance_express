@@ -30,14 +30,13 @@ type SupabaseMessage = {
 };
 
 import { createClient } from "@supabase/supabase-js";
-// import { addWords } from "../words/words";
-// import { readSpanishWords } from "../categorize/evaluating";
 
-
+//statics
 let transciption_model = "whisper-1";
 let text_to_speech_model = "tts-1";
 let llm_model = "gpt-3.5-turbo";
 
+//file upload stuff for audio
 const upload = multer({
   storage: multer.diskStorage({
     destination: "public/uploads",
@@ -45,6 +44,7 @@ const upload = multer({
   }),
 });
 
+//Main route for reading experience
 routes.post(
   "/",
   middleware.authenticateToken, //JWT management
@@ -52,6 +52,19 @@ routes.post(
   async (req: middleware.RequestWithUserId, res) => {
     try {
       if (!req.file) throw new Error("No file uploaded");
+      //Logging Data
+      const message_start_time = new Date();
+      let message_end_time: Date;
+      let message_time_duration: number;
+      let transcription_start_time: Date;
+      let transcription_end_time: Date;
+      let transcription_time_duration: number;
+      let speech_generation_start_time: Date;
+      let speech_generation_end_time: Date;
+      let speech_generation_time_duration: number;
+
+      //Aggregate data
+      let speed_data: any;
 
       // Create a single supabase client
       const supabase = createClient(
@@ -63,10 +76,7 @@ routes.post(
 
       const current_seconds_from_gmt = req.body.seconds_from_gmt;
       const current_user_timezone = req.body.user_time_zone;
-      console.log("Body:", req.body);
-      console.log("old typeof is_question: ", typeof req.body.is_question)
 
-      // let is_question = Boolean(req.body.is_question);
       let is_question: Boolean;
 
       if (req.body.is_question == "true") {
@@ -75,19 +85,9 @@ routes.post(
         is_question = Boolean(false);
       }
 
-
-      // if (is_question == "true") {
-      //   //change to boolean
-      //   is_question = true;
-      // }
-      console.log("new typeof is_question: ", typeof is_question)
-      console.log("is_question", is_question)
-
       //Top Level State
       let user_message: string;
       let prompt: string;
-
-      console.log("is Question ? -> ", is_question);
 
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY || "",
@@ -95,14 +95,20 @@ routes.post(
 
       //body values come in as strings
       if (is_question) {
-        console.log("answering question");
-        //TODO: answer question
+        console.log("User is asking a question");
+
+        const trnascription_start_time = new Date();
         const transcript = await openai.audio.transcriptions.create({
           file: fs.createReadStream(req.file.path),
           model: transciption_model,
           language: "en",
           prompt: `What does "quirro" mean in spanish?`
         });
+
+        transcription_end_time = new Date();
+        transcription_time_duration = transcription_end_time.getTime() - trnascription_start_time.getTime();
+
+        console.log("user_transcript:", transcript)
 
         user_message = transcript.text;
 
@@ -115,14 +121,19 @@ routes.post(
             If I ask a question about a word it will be a word I said in the previous sentences I read and I may have pronounced it wrong.`;
 
       } else {
-        console.log("translating");
+        console.log("User is reading to get translation");
         //Translate and send back
+        transcription_start_time = new Date();
         const transcript = await openai.audio.transcriptions.create({
           file: fs.createReadStream(req.file.path),
           model: transciption_model,
           language: "es",
           prompt: "¿Qué pasa? - dijo Ron"
         });
+        transcription_end_time = new Date();
+        transcription_time_duration = transcription_end_time.getTime() - transcription_start_time.getTime();
+
+        console.log("user_transcript:", transcript)
 
         user_message = transcript.text;
 
@@ -132,13 +143,15 @@ routes.post(
         Use proper pronunciation.`
       }
 
-      //save responses
       let {
         completion_text,
         completion_tokens,
         total_completion_tokens,
         completion_attempts,
         all_completion_responses,
+        llm_time_duration,
+        llm_start_time,
+        llm_end_time
       } = await fetchCompletion(prompt, user_message);
 
       //is it english or spanish?
@@ -147,6 +160,7 @@ routes.post(
       //Delete file
       fs.unlinkSync(req.file.path);
 
+      speech_generation_start_time = new Date();
       //Turn Text into audio
       const mp3 = await openai.audio.speech.create({
         model: text_to_speech_model,
@@ -155,6 +169,9 @@ routes.post(
         input: completion_text ? completion_text : "I don't know what to say.",
         // input: transcriptionResponse, 
       });
+
+      speech_generation_end_time = new Date();
+      speech_generation_time_duration = speech_generation_end_time.getTime() - speech_generation_start_time.getTime();
 
       //Make the buffer
       const buffer = Buffer.from(await mp3.arrayBuffer());
@@ -165,7 +182,8 @@ routes.post(
         audio: buffer,
         user_id: supabase_user_id,
       };
-
+      message_end_time = new Date();
+      message_time_duration = message_end_time.getTime() - message_start_time.getTime();
       res.status(200).send(response);
 
       try {
@@ -173,6 +191,21 @@ routes.post(
         let application_response_machine_scoring = await categorizeUserInput(
           completion_text,
         );
+
+        speed_data = {
+          message_start_time,
+          message_end_time,
+          message_time_duration,
+          transcription_start_time,
+          transcription_end_time,
+          transcription_time_duration,
+          speech_generation_start_time,
+          speech_generation_end_time,
+          speech_generation_time_duration,
+          llm_start_time,
+          llm_end_time,
+          llm_time_duration
+        }
 
         //persist to supabase
         const { data: insertData, error: insertError } = await supabase
@@ -192,28 +225,14 @@ routes.post(
               current_user_timezone,
               user_input_machine_scoring,
               application_response_machine_scoring,
+              speed_data,
             },
           ])
           .select();
 
-        //TODO add back word updates but do it differently
-        //if we are confident its a translation not a question
-        // if (readSpanishWords(user_input_machine_scoring)) {
-        //   await addWords(
-        //     supabase_user_id,
-        //     insertData[0].id,
-        //     transcriptionResponse
-        //   );
-        // } else {
-        //   console.log("we do not beleive we are reading spanish words");
-        // }
       } catch (error: any) {
         console.log("error in message persistance:", JSON.stringify(error));
       }
-
-      //TODO: cant do this until we actually are labelling "question" vs "answer" after transcription
-      //we only want to "addWords" to things we are confident are reading transcriptions
-      // await addWords(supabase_user_id, insertData[0].id, transcriptionResponse);
 
       try {
         const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
@@ -228,13 +247,14 @@ routes.post(
             text_to_speech_model,
             llm_model,
             total_completion_tokens,
+            //timing data
+            ...speed_data,
           },
         });
 
       } catch (error: any) {
         console.log("error in posthog event capture:", JSON.stringify(error));
       }
-
       // console.log("supabase error:", insertError);
     } catch (error: any) {
       console.log("error:", JSON.stringify(error));
@@ -253,6 +273,9 @@ const fetchCompletion = async (
   total_completion_tokens: number;
   completion_attempts: number;
   all_completion_responses: any[];
+  llm_time_duration: number;
+  llm_start_time: Date;
+  llm_end_time: Date;
 }> => {
   console.log("fetching Completion");
 
@@ -269,6 +292,7 @@ const fetchCompletion = async (
   console.log("transcript:", transcript);
   console.log("system_prompt:", system_prompt);
 
+  let llm_start_time = new Date();
   for (let i = 0; i < 3; i++) {
     completion_attempts++;
     const completion = await openai.chat.completions.create({
@@ -298,6 +322,9 @@ const fetchCompletion = async (
 
     break;
   }
+  let llm_end_time = new Date();
+  let llm_time_duration = llm_end_time.getTime() - llm_start_time.getTime();
+
   let obj = {
     completion_text: gptResponse ? gptResponse : "",
     completion_tokens: completion_tokens ? completion_tokens : 0,
@@ -306,6 +333,9 @@ const fetchCompletion = async (
       : 0,
     completion_attempts,
     all_completion_responses,
+    llm_time_duration,
+    llm_start_time,
+    llm_end_time
   };
 
   return obj;
