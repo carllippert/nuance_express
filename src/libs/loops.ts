@@ -1,9 +1,9 @@
-import LoopsClient from "loops";
 import * as Sentry from "@sentry/node";
 import { createClient } from "@supabase/supabase-js";
 
 const createLoopsContact = async (email, userId) => {
     try {
+        const LoopsClient = (await import("loops")).default;
         const loops = new LoopsClient(process.env.LOOPS_API_KEY);
         const resp = await loops.createContact(email, { userId });
         return resp;
@@ -64,6 +64,7 @@ export const createLoopsContactAndUpdateSupabase = async (userId) => {
 export const sendEventToLoops = async (email: string, eventName: string, environment: "PRODUCTION" | "SANDBOX") => {
     if (environment === "PRODUCTION") {
         try {
+            const LoopsClient = (await import("loops")).default;
             const loops = new LoopsClient(process.env.LOOPS_API_KEY);
             const resp = await loops.sendEvent(email, eventName);
             return resp;
