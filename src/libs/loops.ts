@@ -3,9 +3,17 @@ import { createClient } from "@supabase/supabase-js";
 
 const createLoopsContact = async (email, userId) => {
     try {
-        const LoopsClient = (await import("loops")).default;
-        const loops = new LoopsClient(process.env.LOOPS_API_KEY);
-        const resp = await loops.createContact(email, { userId });
+        const resp = await fetch('https://app.loops.so/api/v1/contacts/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.LOOPS_API_KEY}`
+            },
+            body: JSON.stringify({
+                email,
+                userId
+            })
+        });
         return resp;
     } catch (error) {
         console.error("Error creating contact in Loops:", error);
@@ -64,9 +72,14 @@ export const createLoopsContactAndUpdateSupabase = async (userId) => {
 export const sendEventToLoops = async (email: string, eventName: string, environment: "PRODUCTION" | "SANDBOX") => {
     if (environment === "PRODUCTION") {
         try {
-            const LoopsClient = (await import("loops")).default;
-            const loops = new LoopsClient(process.env.LOOPS_API_KEY);
-            const resp = await loops.sendEvent(email, eventName);
+            const resp = await fetch('https://app.loops.so/api/v1/events/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.LOOPS_API_KEY}`
+                },
+                body: JSON.stringify({ email, eventName })
+            });
             return resp;
         } catch (error) {
             Sentry.captureMessage("Error sending event to Loops");
