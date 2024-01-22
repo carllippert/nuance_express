@@ -263,7 +263,6 @@ routes.post(
   }
 );
 
-//TODO: should i use function calling to do the "question or transcription" detection?
 const fetchCompletion = async (
   system_prompt: string,
   transcript: string

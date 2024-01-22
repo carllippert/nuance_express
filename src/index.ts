@@ -4,6 +4,7 @@ import whisperRoute from "./routes/whisperRouter";
 import processMessageRoute from "./routes/processMessages";
 import wordActivityRoute from "./routes/wordActivity";
 import promoRoute from "./routes/promoCodes";
+import revCatWebhookRoute from "./routes/revCatWebhook";
 import * as middleware from "./utils/middleware";
 
 import * as Sentry from "@sentry/node";
@@ -52,6 +53,9 @@ app.use("/upload", whisperRoute)
 app.use("/word-activity", wordActivityRoute)
 app.use("/process-messages", processMessageRoute)
 app.use("/promo", promoRoute)
+
+//Webhook addresses
+app.use("/webhooks/revenuecat", revCatWebhookRoute);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
