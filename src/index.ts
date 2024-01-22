@@ -5,6 +5,7 @@ import processMessageRoute from "./routes/processMessages";
 import wordActivityRoute from "./routes/wordActivity";
 import promoRoute from "./routes/promoCodes";
 import revCatWebhookRoute from "./routes/revCatWebhook";
+import processNewUserRoute from "./routes/processNewUser";
 import * as middleware from "./utils/middleware";
 
 import * as Sentry from "@sentry/node";
@@ -49,12 +50,16 @@ app.get("/", (req: Request, res: Response) => {
   res.status(200).send("Hello from Nuance Express!");
 });
 
+//Routes used in applications
 app.use("/upload", whisperRoute)
 app.use("/word-activity", wordActivityRoute)
-app.use("/process-messages", processMessageRoute)
 app.use("/promo", promoRoute)
 
-//Webhook addresses
+//webhooks from internal systems
+app.use("/webhooks/process-new-user", processNewUserRoute);
+app.use("/webhooks/process-messages", processMessageRoute)
+
+//Webhooks from external systems
 app.use("/webhooks/revenuecat", revCatWebhookRoute);
 
 app.listen(port, () => {
@@ -65,7 +70,6 @@ app.listen(port, () => {
 app.use(Sentry.Handlers.errorHandler());
 
 // custom middleware
-// app.use(middleware.authenticateToken);
 app.use(middleware.unknownEndpoint);
 app.use(middleware.errorHandler);
 
