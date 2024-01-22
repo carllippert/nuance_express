@@ -30,7 +30,7 @@ routes.post("/", async (req, res) => {
         }
 
         let insertBlob = {
-            payload: req.body,
+            event_payload: req.body,
             revenuecat_event_id,
             is_anon_id,
         }
