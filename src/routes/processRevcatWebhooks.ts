@@ -18,7 +18,7 @@ routes.post("/", async (req, res) => {
             .from("revenuecat_webhooks")
             .select("*")
             .eq("processed", false)
-            .eq("skip", false)
+            .eq("skipped", false)
             .eq("processing_error", false)
             .order('created_at', { ascending: true })
             .limit(2)
@@ -31,6 +31,7 @@ routes.post("/", async (req, res) => {
 
         //send events in loops
         data.forEach((revcat_event) => {
+
             //Parse and send events that matter
             let event_type = revcat_event.event_payload.type;
             let event_id = revcat_event.revenuecat_event_id;

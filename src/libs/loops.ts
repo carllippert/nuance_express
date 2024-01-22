@@ -94,14 +94,14 @@ const sendEventToLoops = async (email: string, eventName: string, environment: "
 }
 
 export const sendEventToLoopsAndUpdateSupabase = async (userId: string, revenuecat_event_id: string, eventName: string, environment: "PRODUCTION" | "SANDBOX") => {
-    if (environment === "PRODUCTION") {
-        const supabase = createClient(
-            process.env.SUPABASE_URL || "",
-            process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-        );
+    const supabase = createClient(
+        process.env.SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+    );
 
+    if (environment === "PRODUCTION") {
         try {
-               //get user details from supabase auth
+            //get user details from supabase auth
             const { data, error } = await supabase.auth.admin.getUserById(userId)
 
             if (error) {
@@ -148,8 +148,28 @@ export const sendEventToLoopsAndUpdateSupabase = async (userId: string, revenuec
             throw error;
         }
     } else {
-        console.log("Skipping sending event to loops because REVCAT environment is SANDBOX");
-        return;
+        try {
+            //mark as skipped for sandbox
+            let { data: processingData, error: processingError } = await supabase
+                .from("revenuecat_webhooks")
+                .update({
+                    skipped: true,
+                    skip_reason: "SANDBOX",
+                    processed_at: new Date().toISOString()
+                })
+                .eq("revenuecat_event_id", revenuecat_event_id);
+
+            if (processingError) {
+                throw new Error(processingError.message);
+            }
+            console.log("Marking webhook as skipped because environment is SANDBOX");
+            return;
+        } catch (error) {
+            Sentry.captureMessage("Error marking event as SKIPPED for sandbox");
+            Sentry.captureException(error);
+            console.error("Error marking event as SKIPPED for sandbox:", error);
+            throw error;
+        }
     }
 }
 
