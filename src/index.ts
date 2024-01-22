@@ -5,6 +5,7 @@ import processMessageRoute from "./routes/processMessages";
 import wordActivityRoute from "./routes/wordActivity";
 import promoRoute from "./routes/promoCodes";
 import revCatWebhookRoute from "./routes/revCatWebhook";
+import processRevcatWebhookRoute from "./routes/processRevcatWebhooks";
 import processNewUserRoute from "./routes/processNewUser";
 import * as middleware from "./utils/middleware";
 
@@ -57,7 +58,8 @@ app.use("/promo", promoRoute)
 
 //webhooks from internal systems
 app.use("/webhooks/process-new-user", processNewUserRoute);
-app.use("/webhooks/process-messages", processMessageRoute)
+app.use("/webhooks/process-messages", processMessageRoute);
+app.use("/webhooks/process-revcat-webhooks", processRevcatWebhookRoute);
 
 //Webhooks from external systems
 app.use("/webhooks/revenuecat", revCatWebhookRoute);

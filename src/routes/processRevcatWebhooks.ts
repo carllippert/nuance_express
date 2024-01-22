@@ -1,16 +1,12 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { addWords } from "../words/words";
-import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { sendEventToLoopsAndUpdateSupabase } from "../libs/loops";
 
 const routes = Router();
 
 //Process webhooks from revenue cat
-routes.get("/", async (req, res) => {
+routes.post("/", async (req, res) => {
     try {
-        console.log("process-message body: ", req.body);
-
         // Create a single supabase client
         const supabase = createClient(
             process.env.SUPABASE_URL || "",
@@ -42,7 +38,6 @@ routes.get("/", async (req, res) => {
             let formatted_event_type = `revcat_${event_type.toLowerCase()}`;
 
             calls.push(sendEventToLoopsAndUpdateSupabase(user_id, event_id, formatted_event_type, revcat_event.event_payload.event.environment))
-
         })
 
         //Run all calls in parallel
