@@ -22,6 +22,7 @@ routes.post("/", async (req, res) => {
         //$RCAnonymousID
         let user_id = req.body.event.original_app_user_id;
         let is_anon_id = false;
+        let revenuecat_event_id = req.body.event.id;
 
         // flag user id as "anon_id" if prefixed with $RCAnonymousID
         if (user_id.startsWith("$RCAnonymousID")) {
@@ -30,7 +31,7 @@ routes.post("/", async (req, res) => {
 
         let insertBlob = {
             payload: req.body,
-            revenuecat_event_id: req.body.event.id,
+            revenuecat_event_id,
             is_anon_id,
         }
 
@@ -38,11 +39,14 @@ routes.post("/", async (req, res) => {
             insertBlob["user_id"] = user_id
         }
 
+        console.log("insert into supabase", insertBlob);
+
         const { data: insertedData, error: insertionError } = await supabase
             .from("revenuecat_webhooks")
-            .insert([insertBlob])
+            .insert(insertBlob)
 
         if (insertionError) {
+            console.log("Error inserting revenuecat_webhooks into supabase", insertionError);
             // Capture error in Sentry
             Sentry.captureMessage("Error inserting revenuecat_webhooks into supabase");
             Sentry.captureException(insertionError);
