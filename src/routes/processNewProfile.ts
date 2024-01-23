@@ -3,7 +3,7 @@
 
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { createLoopsContactAndUpdateSupabase } from "../libs/loops";
+import { createLoopsContactAndUpdateSupabase } from "../libs/sendEvents";
 import * as Sentry from "@sentry/node";
 
 const routes = Router();

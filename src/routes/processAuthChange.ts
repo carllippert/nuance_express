@@ -1,51 +1,69 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/node";
+import { sendEventToLoopsAndPosthog } from "../libs/sendEvents";
 
 const routes = Router();
+
+type InsertPayload = {
+    type: 'INSERT'
+    table: string
+    schema: string
+    record: any
+    old_record: null
+}
+type UpdatePayload = {
+    type: 'UPDATE'
+    table: string
+    schema: string
+    record: any
+    old_record: any
+}
+type DeletePayload = {
+    type: 'DELETE'
+    table: string
+    schema: string
+    record: null
+    old_record: any
+}
+
+//docs for supabase webhooks 
+//https://supabase.com/docs/guides/database/webhooks
 
 routes.post("/", async (req, res) => {
     try {
         console.log("process-auth body: ", req.body);
 
-        // Create a single supabase client
-        const supabase = createClient(
-            process.env.SUPABASE_URL || "",
-            process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-        );
+        let event = req.body;
 
-        //TODO: create two events to send to loops
-        // -> "Sign up",
-        //     -> "email_confirmed",
-            // "email_confirmed_at" => equals email confirmed -> "app_email_confirmed"
-            // "email_confirmed_at" => is null but user exists -> "app_sign_up"
-            // also make these posthog events maybe?
-            // If i do it on this end need to do it less on front end in different locations
+        //user is brand new in the auth table
+        //send event to loops
+        if (event.type === 'INSERT' && event.table === 'users') {
+            let row = event.record;
+            let userId = row.id;
+            let email = row.email;
 
-            // //Get messages that have not yet been processed
-            // const { data, error } = await supabase
-            //     .from("profiles")
-            //     .select("*")
-            //     .eq("added_to_external_email_system ", false)
-            //     .order('created_at', { ascending: true })
-            //     .limit(5)
+            let res = await sendEventToLoopsAndPosthog(email, userId, "app_sign_up");
+        }
 
-            // if (error) throw new Error(error.message);
+        if (event.type === 'UPDATE' && event.table === 'users') {
+            //Do what needs to be done
+            let row = event.record;
+            let oldRow = event.old_record
+            if (row && oldRow) {
+                if (oldRow.confirmed_at === null && row.confirmed_at !== null) {
+                    //auth_confirmed
+                    let row = event.record;
+                    let userId = row.id;
+                    let email = row.email;
+                    let res = await sendEventToLoopsAndPosthog(email, userId, "auth_confirmed");
+                } else {
+                    console.log("No auth events we care to listen too");
+                }
+            }
+        }
 
-            // //Create users in Loops
-            // console.log("profile_data", data);
-
-            // let calls: Promise<any>[] = [];
-
-            // // Loop through profiles
-            // data.forEach((profile) => {
-            //     calls.push(createLoopsContactAndUpdateSupabase(profile.id));
-            // });
-
-            // //Run all calls in parallel
-            // let result = await Promise.all(calls);
-
-            res.status(200).send();
+        res.status(200).send();
 
     } catch (error) {
         console.log("Error managing auth change for supabase user to send event to loops", error);

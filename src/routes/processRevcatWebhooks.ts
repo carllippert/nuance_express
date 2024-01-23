@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { sendEventToLoopsAndUpdateSupabase } from "../libs/loops";
+import { sendEventToLoopsAndUpdateSupabase } from "../libs/sendEvents";
 
 const routes = Router();
 
