@@ -47,7 +47,7 @@ routes.get("/", async (req, res) => {
         console.log("Error creating contact in loops for new profiles", error);
         Sentry.captureMessage("Error creating contact in loops for new profiles");
         Sentry.captureException(error);
-        throw error;
+        // throw error;
         res.status(500).send({ message: error.message });
     }
 });

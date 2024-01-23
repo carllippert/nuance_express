@@ -6,7 +6,8 @@ import wordActivityRoute from "./routes/wordActivity";
 import promoRoute from "./routes/promoCodes";
 import revCatWebhookRoute from "./routes/revCatWebhook";
 import processRevcatWebhookRoute from "./routes/processRevcatWebhooks";
-import processNewUserRoute from "./routes/processNewUser";
+import processNewUserRoute from "./routes/processNewProfile";
+import processAuthChangeRoute from "./routes/processAuthChange";
 import * as middleware from "./utils/middleware";
 
 import * as Sentry from "@sentry/node";
@@ -60,6 +61,7 @@ app.use("/promo", promoRoute)
 app.use("/webhooks/process-new-user", processNewUserRoute);
 app.use("/webhooks/process-messages", processMessageRoute);
 app.use("/webhooks/process-revcat-webhooks", processRevcatWebhookRoute);
+app.use("/webhooks/process-auth-change", processAuthChangeRoute)
 
 //Webhooks from external systems
 app.use("/webhooks/revenuecat", revCatWebhookRoute);
