@@ -4,7 +4,7 @@ import * as Sentry from "@sentry/node";
 
 const routes = Router();
 
-routes.get("/", async (req, res) => {
+routes.post("/", async (req, res) => {
     try {
         console.log("process-auth body: ", req.body);
 
