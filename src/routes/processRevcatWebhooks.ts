@@ -1,15 +1,12 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { addWords } from "../words/words";
-import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
+import { sendEventToLoopsAndUpdateSupabase } from "../libs/loops";
 
 const routes = Router();
 
 //Process webhooks from revenue cat
-routes.get("/", async (req, res) => {
+routes.post("/", async (req, res) => {
     try {
-        console.log("process-message body: ", req.body);
-
         // Create a single supabase client
         const supabase = createClient(
             process.env.SUPABASE_URL || "",
@@ -21,7 +18,7 @@ routes.get("/", async (req, res) => {
             .from("revenuecat_webhooks")
             .select("*")
             .eq("processed", false)
-            .eq("skip", false)
+            .eq("skipped", false)
             .eq("processing_error", false)
             .order('created_at', { ascending: true })
             .limit(2)
@@ -30,11 +27,22 @@ routes.get("/", async (req, res) => {
 
         if (error) throw new Error(error.message);
 
-        //Create Words in "System"  
         let calls: Promise<any>[] = [];
 
         //send events in loops
-        
+        data.forEach((revcat_event) => {
+
+            //Parse and send events that matter
+            let event_type = revcat_event.event_payload.type;
+            let event_id = revcat_event.revenuecat_event_id;
+            let user_id = revcat_event.user_id;
+            let formatted_event_type = `revcat_${event_type.toLowerCase()}`;
+
+            calls.push(sendEventToLoopsAndUpdateSupabase(user_id, event_id, formatted_event_type, revcat_event.event_payload.event.environment))
+        })
+
+        //Run all calls in parallel
+        let result = await Promise.all(calls);
 
         res.status(200).send({ message: "Messages Processed", data });
     } catch (error) {

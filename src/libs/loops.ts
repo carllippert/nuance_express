@@ -69,7 +69,7 @@ export const createLoopsContactAndUpdateSupabase = async (userId) => {
 }
 
 //Only do if "environment" != "SANDBOX" for revenuecat
-export const sendEventToLoops = async (email: string, eventName: string, environment: "PRODUCTION" | "SANDBOX") => {
+const sendEventToLoops = async (email: string, eventName: string, environment: "PRODUCTION" | "SANDBOX") => {
     if (environment === "PRODUCTION") {
         try {
             const resp = await fetch('https://app.loops.so/api/v1/events/send', {
@@ -90,6 +90,86 @@ export const sendEventToLoops = async (email: string, eventName: string, environ
     } else {
         console.log("Skipping sending event to loops because environment is SANDBOX");
         return;
+    }
+}
+
+export const sendEventToLoopsAndUpdateSupabase = async (userId: string, revenuecat_event_id: string, eventName: string, environment: "PRODUCTION" | "SANDBOX") => {
+    const supabase = createClient(
+        process.env.SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+    );
+
+    if (environment === "PRODUCTION") {
+        try {
+            //get user details from supabase auth
+            const { data, error } = await supabase.auth.admin.getUserById(userId)
+
+            if (error) {
+                throw new Error(error.message);
+            }
+
+            let email = data.user.email;
+
+            let result = await sendEventToLoops(email, eventName, environment);
+
+            let { data: processingData, error: processingError } = await supabase
+                .from("revenuecat_webhooks")
+                .update({
+                    processed: true,
+                    processed_at: new Date().toISOString()
+                })
+                .eq("revenuecat_event_id", revenuecat_event_id);
+
+            if (processingError) {
+                throw new Error(error.message);
+            }
+
+        } catch (error) {
+            //save error to supabase
+            let { data, error: supaError } = await supabase
+                .from("revenuecat_webhooks")
+                .update({
+                    processing_error: true,
+                    processed_at: new Date().toISOString(),
+                    processing_error_payload: { message: error.message }
+                })
+                .eq("revenuecat_event_id", revenuecat_event_id);
+
+            if (supaError) {
+                Sentry.captureMessage("Error saving error to supabase");
+                Sentry.captureException(error);
+                console.error("Error saving error to supabase:", error);
+                throw error;
+            }
+
+            Sentry.captureMessage("Error sending event to Loops");
+            Sentry.captureException(error);
+            console.error("Error sending event to Loops:", error);
+            throw error;
+        }
+    } else {
+        try {
+            //mark as skipped for sandbox
+            let { data: processingData, error: processingError } = await supabase
+                .from("revenuecat_webhooks")
+                .update({
+                    skipped: true,
+                    skip_reason: "SANDBOX",
+                    processed_at: new Date().toISOString()
+                })
+                .eq("revenuecat_event_id", revenuecat_event_id);
+
+            if (processingError) {
+                throw new Error(processingError.message);
+            }
+            console.log("Marking webhook as skipped because environment is SANDBOX");
+            return;
+        } catch (error) {
+            Sentry.captureMessage("Error marking event as SKIPPED for sandbox");
+            Sentry.captureException(error);
+            console.error("Error marking event as SKIPPED for sandbox:", error);
+            throw error;
+        }
     }
 }
 
