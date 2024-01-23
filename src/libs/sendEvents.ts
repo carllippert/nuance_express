@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { createClient } from "@supabase/supabase-js";
+import { PostHog } from 'posthog-node'
 
 const createLoopsContact = async (email, userId) => {
     try {
@@ -69,7 +70,7 @@ export const createLoopsContactAndUpdateSupabase = async (userId) => {
 }
 
 //Only do if "environment" != "SANDBOX" for revenuecat
-const sendEventToLoops = async (email: string, eventName: string, environment: "PRODUCTION" | "SANDBOX") => {
+export const sendEventToLoopsAndPosthog = async (email: string, userId: string, eventName: string, environment: "PRODUCTION" | "SANDBOX" = "PRODUCTION") => {
     if (environment === "PRODUCTION") {
         try {
             const resp = await fetch('https://app.loops.so/api/v1/events/send', {
@@ -80,13 +81,27 @@ const sendEventToLoops = async (email: string, eventName: string, environment: "
                 },
                 body: JSON.stringify({ email, eventName })
             });
+
+            //send same events to posthog
+            const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
+
+            posthog.capture({
+                distinctId: userId,
+                event: eventName,
+            });
+
             return resp;
+
         } catch (error) {
             Sentry.captureMessage("Error sending event to Loops");
             Sentry.captureException(error);
             console.error("Error sending event to Loops:", error);
             throw error;
         }
+
+
+
+
     } else {
         console.log("Skipping sending event to loops because environment is SANDBOX");
         return;
@@ -110,7 +125,7 @@ export const sendEventToLoopsAndUpdateSupabase = async (userId: string, revenuec
 
             let email = data.user.email;
 
-            let result = await sendEventToLoops(email, eventName, environment);
+            let result = await sendEventToLoopsAndPosthog(email, userId, eventName, environment);
 
             let { data: processingData, error: processingError } = await supabase
                 .from("revenuecat_webhooks")
