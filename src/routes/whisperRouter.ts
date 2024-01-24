@@ -7,7 +7,6 @@ import { PostHog } from 'posthog-node'
 
 import * as middleware from "../utils/middleware";
 import {
-  UserInputMachineScoring,
   categorizeUserInput,
 } from "../categorize/scoring";
 
@@ -154,8 +153,7 @@ routes.post(
         llm_end_time
       } = await fetchCompletion(prompt, user_message);
 
-      //is it english or spanish?
-      let user_input_machine_scoring = await categorizeUserInput(user_message);
+
 
       //Delete file
       fs.unlinkSync(req.file.path);
@@ -186,7 +184,11 @@ routes.post(
       message_time_duration = message_end_time.getTime() - message_start_time.getTime();
       res.status(200).send(response);
 
+      //Log user message and analytics type stuff
       try {
+        //is it english or spanish?
+        let user_input_machine_scoring = await categorizeUserInput(user_message);
+
         //langauge detection on our output
         let application_response_machine_scoring = await categorizeUserInput(
           completion_text,
