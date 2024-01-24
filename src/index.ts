@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import whisperRoute from "./routes/whisperRouter";
+import talkRoute from "./routes/talk";
 import processMessageRoute from "./routes/processMessages";
 import wordActivityRoute from "./routes/wordActivity";
 import promoRoute from "./routes/promoCodes";
@@ -57,6 +58,7 @@ app.use("/upload", whisperRoute)
 app.use("/word-activity", wordActivityRoute)
 app.use("/promo", promoRoute)
 app.use("/web-promo", webPromoRoute)
+app.use("/talk", talkRoute)
 
 //webhooks from internal systems
 app.use("/webhooks/process-messages", processMessageRoute);

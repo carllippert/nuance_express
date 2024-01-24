@@ -179,7 +179,11 @@ routes.post(
       const response = {
         audio: buffer,
         user_id: supabase_user_id,
+        message_input_classification: is_question ? "question" : "reading",
+        user_message, 
+        completion_text,
       };
+      
       message_end_time = new Date();
       message_time_duration = message_end_time.getTime() - message_start_time.getTime();
       res.status(200).send(response);
