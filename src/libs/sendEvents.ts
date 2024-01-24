@@ -2,8 +2,11 @@ import * as Sentry from "@sentry/node";
 import { createClient } from "@supabase/supabase-js";
 import { PostHog } from 'posthog-node'
 
-const createLoopsContact = async (email, userId) => {
+export const createLoopsContact = async (email, userId) => {
     try {
+
+        console.log("Creating contact in Loops: ", email, " - ", userId);
+
         const resp = await fetch('https://app.loops.so/api/v1/contacts/create', {
             method: 'POST',
             headers: {
@@ -85,6 +88,8 @@ export const sendEventToLoopsAndPosthog = async (email: string, userId: string, 
             //send same events to posthog
             const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
 
+            console.log("Adding Event to Posthog for: ", email, " - ", userId , " - ", eventName);
+        
             posthog.capture({
                 distinctId: userId,
                 event: eventName,
@@ -98,9 +103,6 @@ export const sendEventToLoopsAndPosthog = async (email: string, userId: string, 
             console.error("Error sending event to Loops:", error);
             throw error;
         }
-
-
-
 
     } else {
         console.log("Skipping sending event to loops because environment is SANDBOX");
