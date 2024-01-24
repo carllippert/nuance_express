@@ -4,6 +4,7 @@ import whisperRoute from "./routes/whisperRouter";
 import processMessageRoute from "./routes/processMessages";
 import wordActivityRoute from "./routes/wordActivity";
 import promoRoute from "./routes/promoCodes";
+import webPromoRoute from "./routes/webPromoCode";
 import revCatWebhookRoute from "./routes/revCatWebhook";
 import processRevcatWebhookRoute from "./routes/processRevcatWebhooks";
 import processNewUserRoute from "./routes/processNewProfile";
@@ -56,6 +57,7 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/upload", whisperRoute)
 app.use("/word-activity", wordActivityRoute)
 app.use("/promo", promoRoute)
+app.use("/web-promo", webPromoRoute)
 
 //webhooks from internal systems
 app.use("/webhooks/process-new-user", processNewUserRoute);

@@ -32,10 +32,13 @@ routes.post("/", async (req, res) => {
         //send events in loops
         data.forEach((revcat_event) => {
 
+
             //Parse and send events that matter
-            let event_type = revcat_event.event_payload.type;
+            let event_type = revcat_event.event_payload.event.type;
             let event_id = revcat_event.revenuecat_event_id;
             let user_id = revcat_event.user_id;
+            
+
             let formatted_event_type = `revcat_${event_type.toLowerCase()}`;
 
             calls.push(sendEventToLoopsAndUpdateSupabase(user_id, event_id, formatted_event_type, revcat_event.event_payload.event.environment))
