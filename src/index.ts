@@ -7,7 +7,6 @@ import promoRoute from "./routes/promoCodes";
 import webPromoRoute from "./routes/webPromoCode";
 import revCatWebhookRoute from "./routes/revCatWebhook";
 import processRevcatWebhookRoute from "./routes/processRevcatWebhooks";
-import processNewUserRoute from "./routes/processNewProfile";
 import processAuthChangeRoute from "./routes/processAuthChange";
 import * as middleware from "./utils/middleware";
 
@@ -19,7 +18,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;  
 
 //Sentry error reporting
 Sentry.init({
