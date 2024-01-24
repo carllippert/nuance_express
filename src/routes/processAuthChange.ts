@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/node";
-import { sendEventToLoopsAndPosthog } from "../libs/sendEvents";
+import { createLoopsContact, createLoopsContactAndUpdateSupabase, sendEventToLoopsAndPosthog } from "../libs/sendEvents";
 
 const routes = Router();
 
@@ -42,7 +42,8 @@ routes.post("/", async (req, res) => {
             let row = event.record;
             let userId = row.id;
             let email = row.email;
-
+            //Add User as contact to Loops
+            let newUserRes = await createLoopsContact(email, userId);
             let res = await sendEventToLoopsAndPosthog(email, userId, "app_sign_up");
         }
 

@@ -60,7 +60,6 @@ app.use("/promo", promoRoute)
 app.use("/web-promo", webPromoRoute)
 
 //webhooks from internal systems
-app.use("/webhooks/process-new-user", processNewUserRoute);
 app.use("/webhooks/process-messages", processMessageRoute);
 app.use("/webhooks/process-revcat-webhooks", processRevcatWebhookRoute);
 app.use("/webhooks/process-auth-change", processAuthChangeRoute)
