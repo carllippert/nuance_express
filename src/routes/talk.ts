@@ -14,13 +14,17 @@ import {
 
 const routes = Router();
 
-routes.get('/:text', async (req, res) => {
+routes.get('/:secret/:text', async (req, res) => {
     try {
         // const { text } = req.body;
-        const { text } = req.params;
+        const { text, secret } = req.params;
 
         if (!text) {
             return res.status(400).send('Text is required');
+        }
+
+        if(secret !== "magic"){
+            return res.status(400).send('Invalid secret');
         }
 
         const openAiUrl = 'https://api.openai.com/v1/audio/speech';
