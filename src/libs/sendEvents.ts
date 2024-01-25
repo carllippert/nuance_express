@@ -91,7 +91,7 @@ export const sendEventToLoopsAndPosthog = async (email: string, userId: string, 
             console.log("Adding Event to Posthog for: ", email, " - ", userId , " - ", eventName);
         
             posthog.capture({
-                distinctId: userId,
+                distinctId: userId.toUpperCase(), 
                 event: eventName,
             });
 
