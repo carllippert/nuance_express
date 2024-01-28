@@ -2,6 +2,7 @@ import { error as errorLogger } from "./logger";
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import * as Sentry from "@sentry/node";
+import { PostHog } from 'posthog-node'
 
 export const unknownEndpoint = (req: Request, res: Response) => {
   res.status(404).send({ error: `unknown endpoint` });
@@ -26,7 +27,10 @@ export const authenticateToken = (req: RequestWithUserId, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
-  if (token == null) return res.sendStatus(401); // No token provided
+  if (token == null) {
+
+    return res.sendStatus(401); 
+  }// No token provided
 
   const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || "no-secret";
 
