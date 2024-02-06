@@ -378,13 +378,41 @@ async function generateConverstaion(user_prompt: string) {
     //         }
     //     }
     // ];
-    //works
+    //works ad returns array
+    // const tools = [
+    //     {
+    //         "type": "function",
+    //         "function": {
+    //             "name": "create_conversation",
+    //             "description": "create a conversation between two people",
+    //             "parameters": {
+    //                 "type": "object",
+    //                 "properties": {
+    //                     "messages": {
+    //                         type: "array",
+    //                         items: {
+    //                             type: "object",
+    //                             properties: {
+    //                                 text: {
+    //                                     type: "string",
+    //                                     description: "The message text"
+    //                                 }
+    //                             },
+    //                             required: ["text"]
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // ];
+
     const tools = [
         {
             "type": "function",
             "function": {
                 "name": "create_conversation",
-                "description": "create a conversation between two people",
+                "description": "create a conversation between two people. don't put names in front of the messages.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -396,6 +424,14 @@ async function generateConverstaion(user_prompt: string) {
                                     text: {
                                         type: "string",
                                         description: "The message text"
+                                    },
+                                    speaker: {
+                                        type: "string",
+                                        description: "The person speaking"
+                                    },
+                                    gender: {
+                                        type: "string",
+                                        description: "The person speakings gender"
                                     }
                                 },
                                 required: ["text"]
@@ -407,30 +443,8 @@ async function generateConverstaion(user_prompt: string) {
         }
     ];
 
-    // const tools = [
-    //     {
-    //         "type": "function",
-    //         "function": {
-    //             "name": "get_current_weather",
-    //             "description": "Get the current weather in a given location",
-    //             "parameters": {
-    //                 "type": "object",
-    //                 "properties": {
-    //                     "location": {
-    //                         "type": "string",
-    //                         "description": "The city and state, e.g. San Francisco, CA",
-    //                     },
-    //                     "unit": { "type": "string", "enum": ["celsius", "fahrenheit"] },
-    //                 },
-    //                 "required": ["location"],
-    //             },
-    //         }
-    //     }
-    // ];
 
     let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards.`
-
-    // const messages = [{ "role": "user", "content": "What's the weather like in Boston today?" }]
 
     const messages = [
         {
@@ -449,10 +463,9 @@ async function generateConverstaion(user_prompt: string) {
             model: "gpt-3.5-turbo",
             messages,
             tools: tools,
-            // tool_choice: ["create_conversation"],
         }
 
-        console.log("Options: " + options);
+        // console.log("Options: " + options);
 
         let headers = {
             headers: {
@@ -466,13 +479,15 @@ async function generateConverstaion(user_prompt: string) {
         // console.log(JSON.stringify(response.data));
         let completion: ChatCompletion = response.data;
 
-        const firstResponse = completion.choices[0].message.tool_calls;
+        const firstResponse = completion.choices[0].message.tool_calls[0].function.arguments;
+
+        let parsed = JSON.parse(firstResponse);
 
         console.log("Tool Calls: ", JSON.stringify(firstResponse));
 
         const tokens = completion.usage.completion_tokens;
 
-        return { text: firstResponse, tokens }
+        return parsed;
     } catch (error) {
         console.error('Error translating text:', error);
         throw error;
