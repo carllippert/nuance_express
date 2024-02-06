@@ -2,17 +2,10 @@ import { Router } from "express";
 import { v4 as uuid } from 'uuid';
 import { createClient } from "@supabase/supabase-js";
 
-const stream = require('stream');
+// const stream = require('stream');
 
-const ffmpegStatic = require('ffmpeg-static');
-const ffmpeg = require('fluent-ffmpeg');
-
-// Tell fluent-ffmpeg where it can find FFmpeg
-ffmpeg.setFfmpegPath(ffmpegStatic);
-
-
-import fs from "fs";
-import { PostHog } from 'posthog-node'
+// import fs from "fs";
+// import { PostHog } from 'posthog-node'
 
 import axios from "axios";
 
@@ -36,6 +29,7 @@ type ChatCompletion = {
         message: {
             role: string;
             content: string;
+            tool_calls: any[];
         };
         logprobs: null;
         finish_reason: string;
@@ -49,201 +43,106 @@ type ChatCompletion = {
 type ConversationMessage = {
     language: string;
     gender: string;
-    sender: string;
+    speaker: string;
     text: string;
     play_order?: number;
     audioBuffer?: Buffer;
     audioUrl?: string;
+    asset_id?: string;
+    pair_asset_id?: string
+    parent_asset_id?: string
 }
 
-let hp_convo: ConversationMessage[] = [
-    { language: "en", gender: "Male", "sender": "Harry Potter", "text": "Hermione, have you found anything about the Chamber of Secrets in these old books?" },
-    { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "Not yet, Harry. There are so many books, but very few mention the Chamber." },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "It feels like we're looking for a needle in a haystack." },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "We can't give up. The Chamber is a part of Hogwarts' history; there has to be something." },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "I just wish we had more clues. Do you think it's really real?" },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "I believe it is. The attacks on the students must be related." },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "But who could be behind them?" },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "That's what we need to figure out. Oh, look at this old scroll!" },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "Does it say anything about the Chamber?" },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "It mentions a hidden room created by one of the founders. It could be a lead." },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "That's our best lead yet. We should tell Ron." },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "Definitely. Let's find him after we're done here." },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "Have you noticed anything strange about the attacks, Hermione?" },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "Yes, all the victims have been found near water. It's peculiar." },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "Water... that might be important." },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "I'm also trying to understand more about that mysterious voice you heard." },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "I still can't believe I'm the only one who heard it." },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "There must be a reason for that. We'll figure it out, Harry." },
-    // { language: "en", gender: "Male", "sender": "Harry Potter", "text": "Thanks, Hermione. I don't know what I'd do without you and Ron." },
-    // { language: "en", gender: "Female", "sender": "Hermione Granger", "text": "We're a team, Harry. We'll solve this together." }
-]
+// let hp_convo: ConversationMessage[] = [
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "Hermione, have you found anything about the Chamber of Secrets in these old books?" },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "Not yet, Harry. There are so many books, but very few mention the Chamber." },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "It feels like we're looking for a needle in a haystack." },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "We can't give up. The Chamber is a part of Hogwarts' history; there has to be something." },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "I just wish we had more clues. Do you think it's really real?" },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "I believe it is. The attacks on the students must be related." },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "But who could be behind them?" },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "That's what we need to figure out. Oh, look at this old scroll!" },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "Does it say anything about the Chamber?" },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "It mentions a hidden room created by one of the founders. It could be a lead." },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "That's our best lead yet. We should tell Ron." },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "Definitely. Let's find him after we're done here." },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "Have you noticed anything strange about the attacks, Hermione?" },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "Yes, all the victims have been found near water. It's peculiar." },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "Water... that might be important." },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "I'm also trying to understand more about that mysterious voice you heard." },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "I still can't believe I'm the only one who heard it." },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "There must be a reason for that. We'll figure it out, Harry." },
+//     { language: "en", gender: "Male", speaker: "Harry Potter", text: "Thanks, Hermione. I don't know what I'd do without you and Ron." },
+//     { language: "en", gender: "Female", speaker: "Hermione Granger", text: "We're a team, Harry. We'll solve this together." }
+// ]
 
 const routes = Router();
+
+
 
 routes.get('/', async (req, res) => {
     try {
         //Create a "id for the speech practice"
-        const speech_course_id = uuid();
+        // const speech_course_id = uuid();
+
+        let user_prompt = 'Make me a conversation between Harry Potter and Hermione Granger about the Chamber of Secrets 10 messages long in english at a CEFR level of A2'
+        let conversation = await generateConverstaion(user_prompt);
 
         // Create a single supabase client
-        const supabase = createClient(
-            process.env.SUPABASE_URL || "",
-            process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-        );
+        // const supabase = createClient(
+        //     process.env.SUPABASE_URL || "",
+        //     process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+        // );
 
-        //Create Speach course in supabase
-        const { data, error } = await supabase
-            .from('speech_course')
-            .insert(
-                { speech_course_id: speech_course_id }
-            )
+        // //Create Speach course in supabase
+        // const { data, error } = await supabase
+        //     .from('speech_courses')
+        //     .insert(
+        //         { speech_course_id: speech_course_id }
+        //     )
 
-        if (error) {
-            console.log(error);
-            throw error;
-        }
+        // if (error) {
+        //     console.log(error);
+        //     throw error;
+        // }
+
+        //TODO: Give each conversation message a UUID
+        // hp_convo = hp_convo.map((message, index) => {
+        //     return { ...message, asset_id: uuid() }
+        // });
+
 
         // loop through the convo and translate all the message. 
-        const conversation: ConversationMessage[] = await translateConversation(hp_convo);
+        // const conversation: ConversationMessage[] = await translateConversation(hp_convo);
 
-        //loop through the convo and create 
-        console.log(conversation);
+        // //loop through the convo and create 
+        // console.log(conversation);
 
+
+        //TODO: add back after we have tested some of the other stuff
         //loop through the convo 
-        const audioConverstaion: ConversationMessage[] = await createAudio(conversation);
+        // const audioConverstaion: ConversationMessage[] = await createAudio(conversation);
 
-        await saveIndividualAudioAssets(speech_course_id, audioConverstaion);
-
-
-
-        // const audioTool = ffmpeg();
-        // let fullAudioBuffer = Buffer.alloc(0);
-        // loop through ConverstaionMessage and concat all audio buffers into one audio buffer
-        // audioConverstaion.forEach((message) => {
-
-        //     const messageAudioLength = message.audioBuffer.length / (44100 * 2) * 1000; // length in milliseconds
-        //     // const silentAudioDuration = 5000; // in milliseconds
-        //     // const sampleRate = 44100; // standard sample rate for audio
-        //     // const numChannels = 2; // stereo audio
-
-        //     const silentAudioDuration = 5000; // in milliseconds
-        //     const sampleRate = 44100; // standard sample rate for audio
-        //     const numChannels = 2; // stereo audio
-
-        //     const numSamples = (silentAudioDuration / 1000) * sampleRate * numChannels;
-        //     const emptyBuffer = Buffer.alloc(numSamples * 2); // 2 bytes per sample for 16-bit audio
-
-
-        //     fullAudioBuffer = Buffer.concat([fullAudioBuffer, message.audioBuffer]);
-        //     fullAudioBuffer = Buffer.concat([fullAudioBuffer, emptyBuffer]);
-        // });
-
-
-
-        // use ffmpeg to concat the audio conversation messages
-        // let fullAudioBuffer = audioTool.concat(audioConverstaion.map((message) => message.audioBuffer));
-
-
-        // Note: The above line is a placeholder and may need to be adjusted based on the actual implementation of ffmpeg in the codebase.
-        // Ensure that the correct ffmpeg command and options are used for concatenating the audio conversation messages.
-        //   let fullAudioBuffer = Buffer.concat(audioConverstaion.map((message) => {
-        //     return message.audioBuffer;
-        // }));
-
-        let fullAudioBuffer = Buffer.alloc(0);
-        // let silence = await generateSilentAudioBuffer(5);
-
-        // for (const message of audioConverstaion) {
-        //     const silence = await generateSilentAudioBuffer(5);
-        //     console.log("silence: ", silence, "length: ", silence.length);
-        //     fullAudioBuffer = Buffer.concat([fullAudioBuffer, message.audioBuffer, silence]);
-        // }
-
-        // for (const message of audioConverstaion) {
-        //     // Add the message's audio buffer
-        //     fullAudioBuffer = Buffer.concat([fullAudioBuffer, message.audioBuffer]);
-
-        //     // Add the silent audio buffer after each message
-        //     const silence = await generateSilentAudioBuffer(5);
-        //     fullAudioBuffer = Buffer.concat([fullAudioBuffer, silence]);
-        // }
-
-        for (let i = 0; i < audioConverstaion.length; i++) {
-            // Add the message's audio buffer
-            fullAudioBuffer = Buffer.concat([fullAudioBuffer, audioConverstaion[i].audioBuffer]);
-
-            // Add the silent audio buffer after each message, except for the last one
-            if (i < audioConverstaion.length - 1) {
-                const silence = await generateSilentAudioBuffer(5);
-                fullAudioBuffer = Buffer.concat([fullAudioBuffer, silence]);
-            }
-        }
-
-        // loop through ConverstaionMessage and concat all audio buffers into one audio buffer
-        // let fullAudioBufferWithSilence = [];
-        // audioConverstaion.forEach((message, index) => {
-        //     fullAudioBufferWithSilence.push(message.audioBuffer);
-        //     if (index < audioConverstaion.length - 1) {
-        //         // Add an empty audio chunk of the same length as the current audio chunk
-        //         const emptyAudioChunk = Buffer.alloc(message.audioBuffer.length);
-        //         fullAudioBufferWithSilence.push(emptyAudioChunk);
-        //     }
-        // });
-        // let fullAudioBuffer = Buffer.concat(fullAudioBufferWithSilence);
-
-        //save audio to supabase storage and store audio url in ConverstaionMessage object
-        const { data: full_conversation_data, error: full_conversation_error } = await supabase
-            .storage
-            .from('public-audio')
-            .upload(`${speech_course_id}/full_conversation.mp3`, fullAudioBuffer);
-
-        if (full_conversation_error) {
-            console.log(full_conversation_error);
-            throw full_conversation_error;
-        }
+        // await saveIndividualAudioAssets(speech_course_id, audioConverstaion);
 
         // //save url to storage object in speeh_course table
-        const { data: speech_course_data, error: speech_course_error } = await supabase
-            .from('speech_course')
-            .update({ full_audio_url: full_conversation_data.path, public_course: true, ready: true })
-            .eq('speech_course_id', speech_course_id)
+        // const { data: speech_course_data, error: speech_course_error } = await supabase
+        //     .from('speech_course')
+        //     .update({ public_course: true, ready: true })
+        //     .eq('speech_course_id', speech_course_id)
 
 
-        if (speech_course_error) {
-            console.log(speech_course_error);
-            throw speech_course_error;
-        }
+        // if (speech_course_error) {
+        //     console.log(speech_course_error);
+        //     throw speech_course_error;
+        // }
 
-        res.status(200).send(speech_course_id);
+        res.status(200).send(conversation);
     } catch (error) {
-        console.error('Err  or:', error);
-        res.status(500).send('Error processing conversation');
+        // console.error('Err  or:', error.message);
+        res.status(500).send(error);
     }
 });
-
-function generateSilentAudioBuffer(durationInSeconds): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-        const audioStream = new stream.PassThrough();
-        ffmpeg()
-            .input('anullsrc') // Generate silent audio
-            .inputFormat('lavfi')
-            .audioFrequency(24000)
-            .audioChannels(1)
-            .format('s16le') // Output raw PCM data
-            .duration(durationInSeconds)
-            .pipe(audioStream);
-        const chunks = [];
-        audioStream.on('data', chunk => chunks.push(chunk));
-        audioStream.on('end', () => {
-            const buffer = Buffer.concat(chunks);
-            resolve(buffer);
-        });
-        audioStream.on('error', reject);
-    });
-}
-
-
 
 async function createAudio(conversation) {
     let calls: any[] = [];
@@ -340,11 +239,9 @@ async function convertTextToSpeech(text, voice) {
     }
 }
 
-async function translateText(text) {
+async function translateText(text): Promise<{ text: string, tokens: number }> {
+
     try {
-        // const translationPrompt = `Translate this to ${targetLanguage}: ${text}`;
-
-
         const response = await axios.post('https://api.openai.com/v1/chat/completions', {
             model: "gpt-3.5-turbo",
             messages: [
@@ -368,7 +265,8 @@ async function translateText(text) {
         let completion: ChatCompletion = response.data;
 
         const firstResponse = completion.choices[0].message.content;
-        return firstResponse;
+        const tokens = completion.usage.completion_tokens;
+        return { text: firstResponse, tokens }
     } catch (error) {
         console.error('Error translating text:', error);
         throw error;
@@ -378,8 +276,18 @@ async function translateText(text) {
 async function translateConversationMessage(message: ConversationMessage): Promise<ConversationMessage[]> {
     const translatedText = await translateText(message.text);
 
-    let newMessage: ConversationMessage = { ...message, text: translatedText, language: "es" };
-    return [message, newMessage];
+    let new_message_uuid = uuid();
+    let newMessage: ConversationMessage = {
+        ...message,
+        text: translatedText.text,
+        language: "es",
+        asset_id: new_message_uuid,
+        parent_asset_id: message.asset_id,
+        pair_asset_id: message.asset_id
+    };
+
+    let updatedMessage = { ...message, pair_asset_id: new_message_uuid };
+    return [updatedMessage, newMessage];
 }
 
 async function translateConversation(conversation: ConversationMessage[]): Promise<ConversationMessage[]> {
@@ -408,6 +316,197 @@ async function translateConversation(conversation: ConversationMessage[]): Promi
     return translatedConversation;
 }
 
+
+async function generateConverstaion(user_prompt: string) {
+
+    let schema = {
+        "type": "array",
+        "description": "The conversation messages",
+        "items": {
+            "type": "object",
+            "properties": {
+                "message_text": {
+                    "type": "string",
+                    "description": "The message text"
+                }
+            },
+            "required": ["message_text"]
+        }
+    }
+
+    const function_name = "create_conversation";
+
+    // const tools = [
+    //     {
+    //         "type": "function",
+    //         "function": {
+    //             "name": "create_conversation",
+    //             "description": "Create a conversation between two people",
+    //             "parameters": {
+    //                 "type": "array",
+    //                 "description": "The conversation messages",
+    //                 "items": {
+    //                     "type": "object",
+    //                     "properties": {
+    //                         "text": {
+    //                             "type": "string",
+    //                             "description": "The message text"
+    //                         }
+    //                     },
+    //                 }
+    //             }
+    //         }
+    //     }
+    // ];
+    //works
+    // const tools = [
+    //     {
+    //         "type": "function",
+    //         "function": {
+    //             "name": "create_conversation",
+    //             "description": "create a conversation between two people",
+    //             "parameters": {
+    //                 "type": "object",
+    //                 "properties": {
+    //                     "text": {
+    //                         "type": "string",
+    //                         "description": "The message text",
+    //                     },
+    //                 },
+    //                 "required": ["text"],
+    //             },
+    //         }
+    //     }
+    // ];
+    //works
+    const tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "create_conversation",
+                "description": "create a conversation between two people",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "messages": {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    text: {
+                                        type: "string",
+                                        description: "The message text"
+                                    }
+                                },
+                                required: ["text"]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ];
+
+    // const tools = [
+    //     {
+    //         "type": "function",
+    //         "function": {
+    //             "name": "get_current_weather",
+    //             "description": "Get the current weather in a given location",
+    //             "parameters": {
+    //                 "type": "object",
+    //                 "properties": {
+    //                     "location": {
+    //                         "type": "string",
+    //                         "description": "The city and state, e.g. San Francisco, CA",
+    //                     },
+    //                     "unit": { "type": "string", "enum": ["celsius", "fahrenheit"] },
+    //                 },
+    //                 "required": ["location"],
+    //             },
+    //         }
+    //     }
+    // ];
+
+    let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards.`
+
+    // const messages = [{ "role": "user", "content": "What's the weather like in Boston today?" }]
+
+    const messages = [
+        {
+            role: "system",
+            content: course_generation_prompt,
+        },
+        {
+            role: "user",
+            content: user_prompt
+        }
+    ]
+
+    try {
+
+        let options = {
+            model: "gpt-3.5-turbo",
+            messages,
+            tools: tools,
+            // tool_choice: ["create_conversation"],
+        }
+
+        console.log("Options: " + options);
+
+        let headers = {
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        }
+
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', options, headers);
+
+        // console.log(JSON.stringify(response.data));
+        let completion: ChatCompletion = response.data;
+
+        const firstResponse = completion.choices[0].message.tool_calls;
+
+        console.log("Tool Calls: ", JSON.stringify(firstResponse));
+
+        const tokens = completion.usage.completion_tokens;
+
+        return { text: firstResponse, tokens }
+    } catch (error) {
+        console.error('Error translating text:', error);
+        throw error;
+    }
+}
+
+// const messages = [{"role": "user", "content": "What's the weather like in Boston today?"}];
+// const tools = [
+//     {
+//       "type": "function",
+//       "function": {
+//         "name": "get_current_weather",
+//         "description": "Get the current weather in a given location",
+//         "parameters": {
+//           "type": "object",
+//           "properties": {
+//             "location": {
+//               "type": "string",
+//               "description": "The city and state, e.g. San Francisco, CA",
+//             },
+//             "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
+//           },
+//           "required": ["location"],
+//         },
+//       }
+//     }
+// ];
+
+// const response = await openai.chat.completions.create({
+//   model: "gpt-3.5-turbo",
+//   messages: messages,
+//   tools: tools,
+//   tool_choice: "auto",
+// });
 
 export default routes
 
