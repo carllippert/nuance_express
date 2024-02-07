@@ -13,6 +13,17 @@ const llm = ""
 let text_to_speech_model = "tts-1";
 let llm_model = "gpt-3.5-turbo";
 
+type ConversationFromGPT = {
+    title: string;
+    description: string;
+    emoji: string;
+    messages: {
+        text: string;
+        speaker: string;
+        gender: string;
+    }[];
+}
+
 type ChatCompletion = {
     id: string;
     object: string;
@@ -35,6 +46,7 @@ type ChatCompletion = {
         total_tokens: number;
     };
 }
+
 type ConversationMessage = {
     language: string;
     gender: string;
@@ -78,76 +90,101 @@ routes.get('/', async (req, res) => {
         //Create a "id for the speech practice"
         const speech_course_id = uuid();
 
+        let aggregate_prompt_tokens = 0;
+        let aggregate_total_tokens = 0;
+        let aggregate_completion_tokens = 0;
+
         //TODO: calculate what our target CEFR and length should be from some user data
         let length = 5;
-        let cefr = `A1`;
+        let cefr = `A2`;
 
-        let user_prompt = `Make me a conversation between Harry Potter and Hermione Granger about the Chamber of Secrets ${length} messages long in english at a CEFR level of ${cefr}`
-        let conversation = await generateConverstaion(user_prompt);
+        let user_prompt = `Make me a conversation between Harry Potter
+         and Hermione Granger about the Chamber of Secrets 
+         ${length} messages long in english at a CEFR level of ${cefr}`
+
+        let { conversation, prompt_tokens, total_tokens, completion_tokens } = await generateConverstaion(user_prompt);
+
+        //Count tokens form generating the convo
+        aggregate_prompt_tokens += prompt_tokens;
+        aggregate_total_tokens += total_tokens;
+        aggregate_completion_tokens += completion_tokens;
+
+        console.log("prompt_tokens", prompt_tokens);
+        console.log("total_tokens", total_tokens);
+        console.log("completion_tokens", completion_tokens);
 
         // Create a single supabase client
-        // const supabase = createClient(
-        //     process.env.SUPABASE_URL || "",
-        //     process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-        // );
+        const supabase = createClient(
+            process.env.SUPABASE_URL || "",
+            process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+        );
 
         // //Create Speach course in supabase
-        // const { data, error } = await supabase
-        //     .from('speech_courses')
-        //     .insert(
-        //         { speech_course_id: speech_course_id }
-        //     )
+        const { data, error } = await supabase
+            .from('speech_courses')
+            .insert(
+                { speech_course_id: speech_course_id }
+            )
 
-        // if (error) {
-        //     console.log(error);
-        //     throw error;
-        // }
+        if (error) {
+            console.log(error);
+            throw error;
+        }
 
-        //TODO: Give each conversation message a UUID
-        // hp_convo = hp_convo.map((message, index) => {
-        //     return { ...message, asset_id: uuid() }
-        // });
-
+        //giving each message a UUID
+        let convo = conversation.messages.map((message, index) => {
+            return { ...message, asset_id: uuid(), language: "en" }
+        })
 
         // loop through the convo and translate all the message. 
-        // const conversation: ConversationMessage[] = await translateConversation(hp_convo);
+        const translated_conversation = await translateConversation(convo);
 
-        // //loop through the convo and create 
-        // console.log(conversation);
+        console.log(translated_conversation);
 
+        //count tokens fpr work done translating
+        aggregate_prompt_tokens += translated_conversation.prompt_tokens;
+        aggregate_total_tokens += translated_conversation.total_tokens;
+        aggregate_completion_tokens += translated_conversation.completion_tokens;
 
         //TODO: add back after we have tested some of the other stuff
         //loop through the convo 
-        // const audioConverstaion: ConversationMessage[] = await createAudio(conversation);
+        const audioConverstaion: ConversationMessage[] = await createAudio(translated_conversation.messages);
 
-        // await saveIndividualAudioAssets(speech_course_id, audioConverstaion);
+        await saveIndividualAudioAssets(speech_course_id, audioConverstaion);
 
         // //save url to storage object in speeh_course table
-        // const { data: speech_course_data, error: speech_course_error } = await supabase
-        //     .from('speech_course')
-        //     .update({ public_course: true, ready: true })
-        //     .eq('speech_course_id', speech_course_id)
+        const { data: speech_course_data, error: speech_course_error } = await supabase
+            .from('speech_courses')
+            .update({
+                public_course: true,
+                ready: true,
+                course_title: conversation.title,
+                course_description: conversation.description,
+                course_emoji: conversation.emoji,
+                prompt_tokens: aggregate_prompt_tokens,
+                total_tokens: aggregate_total_tokens,
+                completion_tokens: aggregate_completion_tokens,
+                cefr
+            })
+            .eq('speech_course_id', speech_course_id)
 
 
-        // if (speech_course_error) {
-        //     console.log(speech_course_error);
-        //     throw speech_course_error;
-        // }
+        if (speech_course_error) {
+            console.log(speech_course_error);
+            throw speech_course_error;
+        }
 
-        res.status(200).send(conversation);
+        res.status(200).send({ couse_id: speech_course_id });
     } catch (error) {
-        // console.error('Err  or:', error.message);
         res.status(500).send(error);
     }
 });
 
-async function createAudio(conversation) {
+async function createAudio(conversation: ConversationMessage[]) {
     let calls: any[] = [];
 
     for (const message of conversation) {
-        calls.push(convertTextToSpeech(message.text, message.sender === "Man" ? male_voice : female_voice));
-        // const audioBuffer = await convertTextToSpeech(message.text, message.sender === "Man" ? male_voice : female_voice);
-        // message.audioBuffer = audioBuffer; // Add audioBuffer as a key in the conversation objects
+        calls.push(convertTextToSpeech(message.text, message.gender === "M" ? male_voice : female_voice));
     }
 
     // Call all the text to speech conversions in parallel
@@ -195,7 +232,8 @@ async function saveIndividualAudioAssets(speech_course_id, conversation) {
                     speech_course_id: speech_course_id,
                     audio_url: message.audioUrl,
                     play_order: message.play_order,
-                    voice: message.gender === "Male" ? male_voice : female_voice,
+                    speaker_voice: message.gender === "M" ? male_voice : female_voice,
+                    speaker_gender: message.gender,
                     text: message.text, language: message.language,
                     tts_model: text_to_speech_model,
                     llm,
@@ -236,7 +274,7 @@ async function convertTextToSpeech(text, voice) {
     }
 }
 
-async function translateText(text): Promise<{ text: string, tokens: number }> {
+async function translateText(text): Promise<{ text: string, completion_tokens: number, prompt_tokens: number, total_tokens: number }> {
 
     try {
         const response = await axios.post('https://api.openai.com/v1/chat/completions', {
@@ -262,21 +300,27 @@ async function translateText(text): Promise<{ text: string, tokens: number }> {
         let completion: ChatCompletion = response.data;
 
         const firstResponse = completion.choices[0].message.content;
-        const tokens = completion.usage.completion_tokens;
-        return { text: firstResponse, tokens }
+        const completion_tokens = completion.usage.completion_tokens;
+        const prompt_tokens = completion.usage.prompt_tokens;
+        const total_tokens = completion.usage.total_tokens;
+
+        return { text: firstResponse, completion_tokens, prompt_tokens, total_tokens }
     } catch (error) {
         console.error('Error translating text:', error);
         throw error;
     }
 }
 
-async function translateConversationMessage(message: ConversationMessage): Promise<ConversationMessage[]> {
-    const translatedText = await translateText(message.text);
+async function translateConversationMessage(message: ConversationMessage):
+    Promise<{ messages: ConversationMessage[], total_tokens: number, prompt_tokens: number, completion_tokens: number }> {
+
+    const { text, completion_tokens, prompt_tokens, total_tokens } = await translateText(message.text);
 
     let new_message_uuid = uuid();
+
     let newMessage: ConversationMessage = {
         ...message,
-        text: translatedText.text,
+        text: text,
         language: "es",
         asset_id: new_message_uuid,
         parent_asset_id: message.asset_id,
@@ -284,12 +328,19 @@ async function translateConversationMessage(message: ConversationMessage): Promi
     };
 
     let updatedMessage = { ...message, pair_asset_id: new_message_uuid };
-    return [updatedMessage, newMessage];
+
+    return { messages: [updatedMessage, newMessage], completion_tokens, total_tokens, prompt_tokens }
 }
 
-async function translateConversation(conversation: ConversationMessage[]): Promise<ConversationMessage[]> {
+async function translateConversation(conversation: ConversationMessage[]):
+    Promise<{ messages: ConversationMessage[], prompt_tokens: number, total_tokens: number, completion_tokens: number }> {
+
     let translatedConversation: ConversationMessage[] = [];
     let play_order = 0;
+
+    let propmt_tokens = 0;
+    let completion_tokens = 0;
+    let total_tokens = 0;
 
     const translationPromises = conversation.map((conversationMessage) => {
         return translateConversationMessage(conversationMessage);
@@ -300,19 +351,22 @@ async function translateConversation(conversation: ConversationMessage[]): Promi
 
     //loop through to results
     translatedResponses.forEach((response) => {
+        propmt_tokens += response.prompt_tokens;
+        completion_tokens += response.completion_tokens;
+        total_tokens += response.total_tokens;
 
         //loop through response and add a play order
-        response.forEach((message) => {
+        response.messages.forEach((message) => {
             message.play_order = play_order++;
         });
 
-        translatedConversation = [...translatedConversation, ...response];
+        translatedConversation = [...translatedConversation, ...response.messages];
     });
 
-    return translatedConversation;
+    return { messages: translatedConversation, prompt_tokens: propmt_tokens, total_tokens, completion_tokens }
 }
 
-async function generateConverstaion(user_prompt: string) {
+async function generateConverstaion(user_prompt: string): Promise<{ conversation: ConversationFromGPT, completion_tokens: number, prompt_tokens: number, total_tokens: number }> {
     const function_name = "create_conversation";
 
     const tools = [
@@ -326,7 +380,7 @@ async function generateConverstaion(user_prompt: string) {
                     "properties": {
                         "title": {
                             type: "string",
-                            description: "A short fun title for the conversation"
+                            description: "A short fun title for the conversation. Don't say 'conversation' in the title",
                         },
                         "description": {
                             type: "string",
@@ -334,7 +388,7 @@ async function generateConverstaion(user_prompt: string) {
                         },
                         "emoji": {
                             type: "string",
-                            description: "An emoji to represent the conversation"
+                            description: "A single emoji to represent the conversation"
                         },
                         "messages": {
                             type: "array",
@@ -386,8 +440,6 @@ async function generateConverstaion(user_prompt: string) {
             tools: tools,
         }
 
-        // console.log("Options: " + options);
-
         let headers = {
             headers: {
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -406,9 +458,17 @@ async function generateConverstaion(user_prompt: string) {
 
         console.log("Tool Calls: ", JSON.stringify(firstResponse));
 
-        const tokens = completion.usage.completion_tokens;
+        const completion_tokens = completion.usage.completion_tokens;
+        const prompt_tokens = completion.usage.prompt_tokens;
+        const total_tokens = completion.usage.total_tokens;
 
-        return parsed;
+        return {
+            conversation: parsed,
+            completion_tokens,
+            prompt_tokens,
+            total_tokens
+        }
+
     } catch (error) {
         console.error('Error translating text:', error);
         throw error;
