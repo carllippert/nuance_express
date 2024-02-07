@@ -2,11 +2,6 @@ import { Router } from "express";
 import { v4 as uuid } from 'uuid';
 import { createClient } from "@supabase/supabase-js";
 
-// const stream = require('stream');
-
-// import fs from "fs";
-// import { PostHog } from 'posthog-node'
-
 import axios from "axios";
 
 const male_voice = "onyx"
@@ -78,14 +73,16 @@ type ConversationMessage = {
 
 const routes = Router();
 
-
-
 routes.get('/', async (req, res) => {
     try {
         //Create a "id for the speech practice"
-        // const speech_course_id = uuid();
+        const speech_course_id = uuid();
 
-        let user_prompt = 'Make me a conversation between Harry Potter and Hermione Granger about the Chamber of Secrets 10 messages long in english at a CEFR level of A2'
+        //TODO: calculate what our target CEFR and length should be from some user data
+        let length = 5;
+        let cefr = `A1`;
+
+        let user_prompt = `Make me a conversation between Harry Potter and Hermione Granger about the Chamber of Secrets ${length} messages long in english at a CEFR level of ${cefr}`
         let conversation = await generateConverstaion(user_prompt);
 
         // Create a single supabase client
@@ -312,110 +309,33 @@ async function translateConversation(conversation: ConversationMessage[]): Promi
         translatedConversation = [...translatedConversation, ...response];
     });
 
-
     return translatedConversation;
 }
 
-
 async function generateConverstaion(user_prompt: string) {
-
-    let schema = {
-        "type": "array",
-        "description": "The conversation messages",
-        "items": {
-            "type": "object",
-            "properties": {
-                "message_text": {
-                    "type": "string",
-                    "description": "The message text"
-                }
-            },
-            "required": ["message_text"]
-        }
-    }
-
     const function_name = "create_conversation";
-
-    // const tools = [
-    //     {
-    //         "type": "function",
-    //         "function": {
-    //             "name": "create_conversation",
-    //             "description": "Create a conversation between two people",
-    //             "parameters": {
-    //                 "type": "array",
-    //                 "description": "The conversation messages",
-    //                 "items": {
-    //                     "type": "object",
-    //                     "properties": {
-    //                         "text": {
-    //                             "type": "string",
-    //                             "description": "The message text"
-    //                         }
-    //                     },
-    //                 }
-    //             }
-    //         }
-    //     }
-    // ];
-    //works
-    // const tools = [
-    //     {
-    //         "type": "function",
-    //         "function": {
-    //             "name": "create_conversation",
-    //             "description": "create a conversation between two people",
-    //             "parameters": {
-    //                 "type": "object",
-    //                 "properties": {
-    //                     "text": {
-    //                         "type": "string",
-    //                         "description": "The message text",
-    //                     },
-    //                 },
-    //                 "required": ["text"],
-    //             },
-    //         }
-    //     }
-    // ];
-    //works ad returns array
-    // const tools = [
-    //     {
-    //         "type": "function",
-    //         "function": {
-    //             "name": "create_conversation",
-    //             "description": "create a conversation between two people",
-    //             "parameters": {
-    //                 "type": "object",
-    //                 "properties": {
-    //                     "messages": {
-    //                         type: "array",
-    //                         items: {
-    //                             type: "object",
-    //                             properties: {
-    //                                 text: {
-    //                                     type: "string",
-    //                                     description: "The message text"
-    //                                 }
-    //                             },
-    //                             required: ["text"]
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // ];
 
     const tools = [
         {
             "type": "function",
             "function": {
-                "name": "create_conversation",
-                "description": "create a conversation between two people. don't put names in front of the messages.",
+                "name": function_name,
+                "description": "Create a conversation between two people. don't put names in front of the messages. ",
                 "parameters": {
                     "type": "object",
                     "properties": {
+                        "title": {
+                            type: "string",
+                            description: "A short fun title for the conversation"
+                        },
+                        "description": {
+                            type: "string",
+                            description: "A longer description of the conversation"
+                        },
+                        "emoji": {
+                            type: "string",
+                            description: "An emoji to represent the conversation"
+                        },
                         "messages": {
                             type: "array",
                             items: {
@@ -437,13 +357,14 @@ async function generateConverstaion(user_prompt: string) {
                                 required: ["text"]
                             }
                         }
-                    }
+                    },
+                    required: ["messages", "emoji", "title", "description"]
                 }
             }
         }
     ];
 
-
+    //TODO: inject book history into system prompt
     let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards.`
 
     const messages = [
@@ -493,35 +414,6 @@ async function generateConverstaion(user_prompt: string) {
         throw error;
     }
 }
-
-// const messages = [{"role": "user", "content": "What's the weather like in Boston today?"}];
-// const tools = [
-//     {
-//       "type": "function",
-//       "function": {
-//         "name": "get_current_weather",
-//         "description": "Get the current weather in a given location",
-//         "parameters": {
-//           "type": "object",
-//           "properties": {
-//             "location": {
-//               "type": "string",
-//               "description": "The city and state, e.g. San Francisco, CA",
-//             },
-//             "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
-//           },
-//           "required": ["location"],
-//         },
-//       }
-//     }
-// ];
-
-// const response = await openai.chat.completions.create({
-//   model: "gpt-3.5-turbo",
-//   messages: messages,
-//   tools: tools,
-//   tool_choice: "auto",
-// });
 
 export default routes
 
