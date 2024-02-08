@@ -20,7 +20,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const app = express();
-const port = process.env.PORT || 3000;  
+const port = process.env.PORT || 3000;
 
 //Sentry error reporting
 Sentry.init({
@@ -66,6 +66,7 @@ app.use("/speech-course", speechCourseRoute)
 app.use("/webhooks/process-messages", processMessageRoute);
 app.use("/webhooks/process-revcat-webhooks", processRevcatWebhookRoute);
 app.use("/webhooks/process-auth-change", processAuthChangeRoute)
+// app.use("/webhooks/process-speech-course-generation-request", );
 
 //Webhooks from external systems
 app.use("/webhooks/revenuecat", revCatWebhookRoute);
