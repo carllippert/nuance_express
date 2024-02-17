@@ -84,7 +84,7 @@ app.use("/request-course", requestSpeechCourseRoute)
 //2. Webhooks fire on creation of request to take care of it if its an "immediate" request
 app.use("/webhooks/process-speech-course-generation-request", processSpeechCourseRequestRoute);
 //3. The text of the course is created and stored in the database
-app.use("/webooks/process-course-audio-generation-request", processSpeechCourseAudioGenerationRequestRoute);
+app.use("/webhooks/process-course-audio-generation-request", processSpeechCourseAudioGenerationRequestRoute);
 //4. The course audio is generated and stored in the database
 //5. Course is marked processed and "ready"
 //6. Database permisions allow user to download "ready" courses and see processing of their own courses
