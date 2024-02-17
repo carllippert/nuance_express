@@ -28,10 +28,10 @@ export const generateRequestConversation = async (request_id: string) => {
         let public_course = request.public_course;
         let speech_course_id = request.speech_course_id;
 
-
         if (duration_minutes === undefined ||
             cefr === undefined ||
-            public_course === undefined
+            public_course === undefined ||
+            speech_course_id === undefined
         ) throw new Error("Request data is missing");
 
         //make the course from params in request
