@@ -9,8 +9,9 @@ export const male_voice = "onyx"
 export const female_voice = "nova"
 
 //Models
-export const text_to_speech_model = "tts-1";
+export const tts_model = "tts-1";
 export const llm_model = "gpt-3.5-turbo";
+export const api_provider = "openai";
 
 export type ConversationFromGPT = {
     title: string;

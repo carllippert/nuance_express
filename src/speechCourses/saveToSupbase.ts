@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 import {
-    text_to_speech_model,
+    tts_model,
     male_voice,
     female_voice,
     translation_prompt,
@@ -47,7 +47,7 @@ export async function saveIndividualAudioAssets(speech_course_id, conversation) 
                     speaker_voice: message.gender === "M" ? male_voice : female_voice,
                     speaker_gender: message.gender,
                     text: message.text, language: message.language,
-                    tts_model: text_to_speech_model,
+                    tts_model,
                     public_asset: true,
                     asset_duration_ms: message.metadata.format.duration * 1000, //convert to milliseconds
                     audio_metadata: message.metadata,

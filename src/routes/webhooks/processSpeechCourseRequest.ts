@@ -29,8 +29,8 @@ routes.post("/", async (req, res) => {
         res.status(200).send();
 
     } catch (error) {
-        console.log("Error managing auth change for supabase user to send event to loops", error);
-        Sentry.captureMessage("Error managing auth change for supabase user to send event to loops");
+        console.log("Error processing speech rouse request", error);
+        Sentry.captureMessage("Error processing speech rouse request");
         Sentry.captureException(error);
         // throw error;
         res.status(500).send({ message: error.message });
