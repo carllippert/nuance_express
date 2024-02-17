@@ -15,10 +15,10 @@ export const generateRequestConversation = async (request_id: string) => {
             .from('speech_course_generation_requests')
             .update({ request_status: "PROCESSING" })
             .eq('speech_course_generation_request_id', request_id)
-            .single()
+            .select();
 
         if (error) throw error;
-
+        // speech_course_id
         console.log('data:', data);
 
         let { duration_minutes, cefr, public_course } = data;
