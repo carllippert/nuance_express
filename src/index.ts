@@ -85,7 +85,7 @@ app.use("/request-course", requestSpeechCourseRoute)
 app.use("/webhooks/process-speech-course-generation-request", processSpeechCourseRequestRoute);
 //3. The text of the course is created and stored in the database
 app.use("/webhooks/process-course-audio-generation-request", processSpeechCourseAudioGenerationRequestRoute);
-//4. The course audio is generated and stored in the database
+//4. The course audio is generated and stored in the database 
 //5. Course is marked processed and "ready"
 //6. Database permisions allow user to download "ready" courses and see processing of their own courses
 

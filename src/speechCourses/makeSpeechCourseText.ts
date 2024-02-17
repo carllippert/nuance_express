@@ -129,7 +129,7 @@ export const makeSpeechCourseText = async (
             .from('speech_courses')
             .update({
                 public_course,
-                ready: true,
+                ready: false,
                 course_title: conversation.title,
                 course_description: conversation.description,
                 course_emoji: conversation.emoji,
