@@ -1,5 +1,4 @@
-// import PQueue from 'p-queue';
-const PQueue = require('p-queue').default;
+import PQueue from 'p-queue';
 
 // let PQueue;
 // import('p-queue').then(module => {
