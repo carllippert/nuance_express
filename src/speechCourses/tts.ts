@@ -3,7 +3,8 @@ import * as mm from 'music-metadata';
 
 export type IAudioMetadata = mm.IAudioMetadata;
 
-import { ConversationMessage, male_voice, female_voice } from './config';
+import { ConversationMessage, male_voice, female_voice, tts_model } from './config';
+import { OPENAI_TTS_QUEUE, addBackgroundTask } from "../queue/pqueue";
 
 export async function createAudio(conversation: ConversationMessage[]) {
     let calls: any[] = [];
@@ -25,32 +26,63 @@ export async function createAudio(conversation: ConversationMessage[]) {
     return conversation; // Return the modified conversation with audioBuffer added to each message
 }
 
-export async function convertTextToSpeech(text, voice): Promise<{ buffer: Buffer, metadata: IAudioMetadata }> {
-    try {
-        const response = await axios.post('https://api.openai.com/v1/audio/speech', {
-            model: "tts-1",
-            voice: voice,
-            input: text
-        }, {
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            responseType: 'arraybuffer'
-        });
+// export async function convertTextToSpeech(text, voice): Promise<{ buffer: Buffer, metadata: IAudioMetadata }> {
+//     try {
+//         const response = await axios.post('https://api.openai.com/v1/audio/speech', {
+//             model: "tts-1",
+//             voice: voice,
+//             input: text
+//         }, {
+//             headers: {
+//                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+//                 'Content-Type': 'application/json'
+//             },
+//             responseType: 'arraybuffer'
+//         });
 
-        let metadata = await getAudioDuration(response.data);
+//         let metadata = await getAudioDuration(response.data);
 
-        return { buffer: response.data, metadata }
+//         return { buffer: response.data, metadata }
 
-    } catch (error) {
-        console.error('Error converting text to speech:', error);
-        throw error;
-    }
-}
+//     } catch (error) {
+//         console.error('Error converting text to speech:', error);
+//         throw error;
+//     }
+// }
 
 export async function getAudioDuration(buffer): Promise<mm.IAudioMetadata> {
     const metadata = await mm.parseBuffer(buffer, 'audio/mpeg', { duration: true }); //mp3 mimetype
     console.log("metadata calculated");
     return metadata; // Duration in seconds
+}
+
+
+//rate limited tts
+export async function convertTextToSpeech(text, voice): Promise<{ buffer: Buffer, metadata: IAudioMetadata }> {
+    // Wrap the operation in a function for the queue
+    const task = async () => {
+        try {
+            const response = await axios.post('https://api.openai.com/v1/audio/speech', {
+                model: tts_model,
+                voice: voice,
+                input: text
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                responseType: 'arraybuffer'
+            });
+
+            let metadata = await getAudioDuration(response.data);
+            return { buffer: response.data, metadata };
+
+        } catch (error) {
+            console.error('Error converting text to speech:', error);
+            throw error;
+        }
+    };
+
+    //add task to queue
+    return addBackgroundTask(task);
 }
