@@ -1,4 +1,11 @@
-import PQueue from 'p-queue';
+// import PQueue from 'p-queue';
+const PQueue = require('p-queue').default;
+
+// let PQueue;
+// import('p-queue').then(module => {
+//     PQueue = module.default;
+//     // Initialize PQueue and use it here, or make sure it's initialized where it's going to be used
+// });
 
 export const OPENAI_TTS_QUEUE = new PQueue({
     interval: 60000,
