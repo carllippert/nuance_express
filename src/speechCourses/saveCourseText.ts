@@ -48,7 +48,7 @@ export async function saveCourseText(speech_course_id, conversation) {
         return assetData;
 
     } catch (error) {
-        console.error('Error saving audio assets:', error);
+        console.error('Error saving course text:', error);
         throw error;
     }
 }

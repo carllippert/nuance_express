@@ -26,6 +26,7 @@ export const generateRequestConversation = async (request_id: string) => {
         let duration_minutes = request.duration_minutes;
         let cefr = request.cefr;
         let public_course = request.public_course;
+        let speech_course_id = request.speech_course_id;
 
 
         if (duration_minutes === undefined ||
@@ -34,7 +35,7 @@ export const generateRequestConversation = async (request_id: string) => {
         ) throw new Error("Request data is missing");
 
         //make the course from params in request
-        let course = await makeSpeechCourseText(duration_minutes, cefr, public_course);
+        let course = await makeSpeechCourseText(duration_minutes, cefr, public_course, speech_course_id);
 
         // save processing status on request
         return;
