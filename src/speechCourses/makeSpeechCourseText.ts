@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 
 import { generateConversation } from "./generateConversation";
 import { translateConversation } from "./translate";
-import { saveIndividualAudioAssets } from "./saveToSupbase";
-import { createAudio } from "./tts"
+// import { saveIndividualAudioAssets } from "./saveToSupbase";
+// import { createAudio } from "./tts"
 import { saveCourseText } from './saveCourseText';
 
 const average_words_per_minute = 150;
