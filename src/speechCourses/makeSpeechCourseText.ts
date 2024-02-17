@@ -19,6 +19,8 @@ export const makeSpeechCourseText = async (
     try {
         let speech_course_id = speech_course_id_arg || uuid();
 
+        console.log("speech_course_id", speech_course_id);
+
         let aggregate_prompt_tokens = 0;
         let aggregate_total_tokens = 0;
         let aggregate_completion_tokens = 0;
