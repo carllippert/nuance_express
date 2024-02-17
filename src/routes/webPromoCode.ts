@@ -79,6 +79,7 @@ routes.get("/:user_id/:promoCode/:secret",
             // console.log("promoCode", promoCode)
             // console.log("user_id", user_id)
             // console.log("secret", secret)
+            
             console.log("web promo params", req.params)
 
             if (!promoCode) throw new Error("No promo code provided");

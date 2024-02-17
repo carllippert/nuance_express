@@ -120,11 +120,12 @@ routes.get("/:invite_email/:secret",
 
             const user_id = data.user.id;
 
+            console.log("User ID", user_id);
+
             const add_user_options = {
                 method: 'GET',
                 headers: {
                     accept: 'application/json',
-                    "X-Platform": "ios",
                     'content-type': 'application/json',
                     Authorization: 'Bearer ' + process.env.REVENUECAT_API_KEY
                 },
@@ -135,10 +136,14 @@ routes.get("/:invite_email/:secret",
             console.log("add_user_url", add_user_url)
             let add_user_result = await fetch(add_user_url, add_user_options);
             let add_user_result_status = add_user_result.status;
-            if (add_user_result_status != 201) throw new Error("Error creating new user in revenue cat");
-
             console.log("status of revcat call", add_user_result_status)
-            console.log("result from revcat", add_user_result_status)
+            console.log("result from revcat", add_user_result)
+
+            if (add_user_result_status != 201) {
+                // console.log()
+                throw new Error("Error creating new user in revenue cat");
+            }
+
             let add_user_json: Subscriber = await add_user_result.json()
 
             console.log("Subscriber", add_user_json)
@@ -178,6 +183,7 @@ routes.get("/:invite_email/:secret",
                     promo_code: "sent_user_invite",
                     used_at: new Date().toISOString(),
                     invite_password: password,
+                    invite_email,
                     used_by_user_id: user_id,
                     promo_ends_at: new Date(new Date().getTime() + 31 * 24 * 60 * 60 * 1000).toDateString()
                 })
@@ -194,9 +200,8 @@ routes.get("/:invite_email/:secret",
         }
     });
 
-
 function generateSimplePassword(): string {
-    const words = ["book", "read", "spanish", "learn"];
+    const words = ["read", "learn"];
     const specialCharacters = ["!", "@", "#", "$", "%"];
     const numbers = Math.floor(Math.random() * 899 + 100); // Generates a number between 100 and 999
     const word = words[Math.floor(Math.random() * words.length)];

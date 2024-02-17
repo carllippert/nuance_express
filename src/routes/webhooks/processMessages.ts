@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { addWords } from "../words/words";
+import { addWords } from "../../words/words";
 import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 
 const routes = Router();

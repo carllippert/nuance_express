@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/node";
-import { createLoopsContact, createLoopsContactAndUpdateSupabase, sendEventToLoopsAndPosthog } from "../libs/sendEvents";
+import { createLoopsContact, createLoopsContactAndUpdateSupabase, sendEventToLoopsAndPosthog } from "../../libs/sendEvents";
 
 const routes = Router();
 

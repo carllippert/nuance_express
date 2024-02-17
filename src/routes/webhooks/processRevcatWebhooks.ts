@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { sendEventToLoopsAndUpdateSupabase } from "../libs/sendEvents";
+import { sendEventToLoopsAndUpdateSupabase } from "../../libs/sendEvents";
 
 const routes = Router();
 
@@ -36,7 +36,7 @@ routes.post("/", async (req, res) => {
             let event_type = revcat_event.event_payload.event.type;
             let event_id = revcat_event.revenuecat_event_id;
             let user_id = revcat_event.user_id;
-            
+
 
             let formatted_event_type = `revcat_${event_type.toLowerCase()}`;
 
