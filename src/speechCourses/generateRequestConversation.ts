@@ -11,17 +11,22 @@ export const generateRequestConversation = async (request_id: string) => {
         );
 
         //set processing status on request
-        const { data, error }: { data: any, error: any } = await supabase
+        const { data, error } = await supabase
             .from('speech_course_generation_requests')
             .update({ request_status: "PROCESSING" })
             .eq('speech_course_generation_request_id', request_id)
             .select();
 
         if (error) throw error;
-        // speech_course_id
-        console.log('data:', data);
+        // speech_course_id 
+        console.log('data:', JSON.stringify(data, null, 2));
 
-        let { duration_minutes, cefr, public_course } = data;
+        // let { duration_minutes, cefr, public_course } = data;
+        let request = data[0];
+        let duration_minutes = request.duration_minutes;
+        let cefr = request.cefr;
+        let public_course = request.public_course;
+
 
         if (duration_minutes === undefined ||
             cefr === undefined ||
