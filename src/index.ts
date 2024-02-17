@@ -2,13 +2,16 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import whisperRoute from "./routes/whisperRouter";
 import talkRoute from "./routes/talk";
-import processMessageRoute from "./routes/processMessages";
+import requestSpeechCourseRoute from "./routes/requestSpeechCourse";
+import processSpeechCourseRequestRoute from "./routes/webhooks/processSpeechCourseRequest";
+import processMessageRoute from "./routes/webhooks/processMessages";
 import wordActivityRoute from "./routes/wordActivity";
+import inviteUserRoute from "./routes/inviteUser";
 import promoRoute from "./routes/promoCodes";
 import webPromoRoute from "./routes/webPromoCode";
-import revCatWebhookRoute from "./routes/revCatWebhook";
-import processRevcatWebhookRoute from "./routes/processRevcatWebhooks";
-import processAuthChangeRoute from "./routes/processAuthChange";
+import revCatWebhookRoute from "./routes/webhooks/revCatWebhook";
+import processRevcatWebhookRoute from "./routes/webhooks/processRevcatWebhooks";
+import processAuthChangeRoute from "./routes/webhooks/processAuthChange";
 import * as middleware from "./utils/middleware";
 
 import * as Sentry from "@sentry/node";
@@ -19,7 +22,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const app = express();
-const port = process.env.PORT || 3000;  
+const port = process.env.PORT || 3000;
 
 //Sentry error reporting
 Sentry.init({
@@ -59,11 +62,30 @@ app.use("/word-activity", wordActivityRoute)
 app.use("/promo", promoRoute)
 app.use("/web-promo", webPromoRoute)
 app.use("/talk", talkRoute)
+// app.use("/speech-course", speechCourseRoute)
+
+app.use("/invite", inviteUserRoute)
 
 //webhooks from internal systems
 app.use("/webhooks/process-messages", processMessageRoute);
 app.use("/webhooks/process-revcat-webhooks", processRevcatWebhookRoute);
-app.use("/webhooks/process-auth-change", processAuthChangeRoute)
+app.use("/webhooks/process-auth-change", processAuthChangeRoute);
+
+///////////////////////////////////
+///////////////////////////////////
+///// Speech Course Generation ////
+///////////////////////////////////
+///////////////////////////////////
+
+//1. User or system makes a request for generation of a speech course
+app.use("/request-course", requestSpeechCourseRoute)
+//2. Webhooks fire on creation of request to take care of it if its an "immediate" request
+app.use("/webhooks/process-speech-course-generation-request", processSpeechCourseRequestRoute);
+//3. The text of the course is created and stored in the database
+//4. The course audio is generated and stored in the database
+//5. Course is marked processed and "ready"
+//6. Database permisions allow user to download "ready" courses and see processing of their own courses
+
 
 //Webhooks from external systems
 app.use("/webhooks/revenuecat", revCatWebhookRoute);
