@@ -4,7 +4,7 @@ import * as mm from 'music-metadata';
 export type IAudioMetadata = mm.IAudioMetadata;
 
 import { ConversationMessage, male_voice, female_voice, tts_model } from './config';
-import { OPENAI_TTS_QUEUE, addBackgroundTask } from "../queue/pqueue";
+import { addBackgroundTask } from "../queue/pqueue";
 
 export async function createAudio(conversation: ConversationMessage[]) {
     let calls: any[] = [];
