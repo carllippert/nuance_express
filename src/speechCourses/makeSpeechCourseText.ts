@@ -135,7 +135,6 @@ export const makeSpeechCourseText = async (
                 total_tokens: aggregate_total_tokens,
                 completion_tokens: aggregate_completion_tokens,
                 cefr,
-
                 // course_duration_ms,
                 // words_per_minute,
                 // words_per_second,

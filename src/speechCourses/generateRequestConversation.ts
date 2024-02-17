@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { makeSpeechCourseText } from "./makeSpeechCourseText";
 
-export const generateRequestConversation = async (requst_id: string) => {
+export const generateRequestConversation = async (request_id: string) => {
     try {
 
         //Fetch request from supabase
@@ -14,10 +14,12 @@ export const generateRequestConversation = async (requst_id: string) => {
         const { data, error }: { data: any, error: any } = await supabase
             .from('speech_course_generation_requests')
             .update({ request_status: "PROCESSING" })
-            .eq('speech_course_generation_request_id', requst_id)
+            .eq('speech_course_generation_request_id', request_id)
             .single()
 
         if (error) throw error;
+
+        console.log('data:', data);
 
         let { duration_minutes, cefr, public_course } = data;
 
