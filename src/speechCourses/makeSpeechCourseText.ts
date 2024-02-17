@@ -13,11 +13,11 @@ const average_words_per_sentence = 8;
 export const makeSpeechCourseText = async (
     requested_length_in_minutes: number,
     cefr: string,
-    public_course: boolean
+    public_course: boolean,
+    speech_course_id_arg?: string
 ) => {
     try {
-        //Create a "id for the speech practice"
-        const speech_course_id = uuid();
+        let speech_course_id = speech_course_id_arg || uuid();
 
         let aggregate_prompt_tokens = 0;
         let aggregate_total_tokens = 0;
