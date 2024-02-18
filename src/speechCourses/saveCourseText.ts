@@ -4,7 +4,8 @@ import {
     male_voice,
     female_voice,
     translation_prompt,
-    llm_model
+    llm_model,
+    api_provider
 } from "./config";
 
 export async function saveCourseText(speech_course_id, conversation) {
@@ -36,6 +37,7 @@ export async function saveCourseText(speech_course_id, conversation) {
                     pair_asset_id: message.pair_asset_id,
                     add_empty_space_after_playing: true,
                     llm: llm_model,
+                    api_provider,
                     prompt_details: { prompt: translation_prompt }
                 }
             }))
