@@ -21,7 +21,6 @@ export const generateRequestedConversation = async (request_id: string) => {
         // speech_course_id 
         console.log('data:', JSON.stringify(data, null, 2));
 
-        // let { duration_minutes, cefr, public_course } = data;
         let request = data[0];
         let duration_minutes = request.duration_minutes;
         let cefr = request.cefr;
