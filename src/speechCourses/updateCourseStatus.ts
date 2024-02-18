@@ -39,7 +39,7 @@ export const updateCourseStatusIfReady = async (courseId: string) => {
             const { data: courseData, error: courseError } = await supabase
                 .from('speech_courses')
                 .update({
-                    status: 'ready',
+                    ready: true,
                     course_audio_duration_ms,
                     words_per_minute,
                     words_per_second,
