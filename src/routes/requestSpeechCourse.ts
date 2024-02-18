@@ -15,8 +15,9 @@ routes.get('/:minutes/:cefr/:secret', async (req, res) => {
 
         let secretArg = "magic"
         if (secretArg !== secret) throw new Error("Invalid secret")
+        let public_course = true;
 
-        let { speech_course_id, speech_course_generation_request_id } = await requestCourse(Number(minutes), cefr, false, true);
+        let { speech_course_id, speech_course_generation_request_id } = await requestCourse(Number(minutes), cefr, public_course, true);
 
         console.log("Course request created", speech_course_id, speech_course_generation_request_id);
 
