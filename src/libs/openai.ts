@@ -18,6 +18,8 @@ axiosRetry(openai_client, {
     },
     retryDelay: axiosRetry.exponentialDelay, // Exponential backoff delay between retries
     onRetry(retryCount, error, requestConfig) {
-        // requestConfig.
+        console.error('Retry Error number:', error.response.status);
+        console.error('Error response:', error.response.data);
+        console.error(`Retry attempt #${retryCount}`);
     },
 });
