@@ -1,5 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { createClient } from "@supabase/supabase-js";
+import { course_system_version } from "./config";
 
 import { generateConversation } from "./generateConversation";
 import { translateConversation } from "./translate";
@@ -91,12 +92,13 @@ export const makeSpeechCourseText = async (
 
         //Save individual messages
         await saveCourseText(speech_course_id, translated_conversation.messages);
-    
+
         // //save url to storage object in speeh_course table
         const { data: speech_course_data, error: speech_course_error } = await supabase
             .from('speech_courses')
             .update({
                 public_course,
+                course_system_version,
                 ready: false,
                 course_title: conversation.title,
                 course_description: conversation.description,
