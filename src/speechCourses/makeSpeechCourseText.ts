@@ -18,12 +18,27 @@ export const makeEnglishCourseText = async (
         //TODO: calculate how to know in advance the rough audio length of a course
         //TODO: template user_prompt into a larger prompt to get usefull output
 
-        let num_of_messages = calculateLength(requested_length_in_minutes);;
+        let num_of_messages = calculateLength(requested_length_in_minutes);
 
-        let user_prompt = `Make me a conversation between two unique characters in the harry potter universe.
-         The conversation should be ${num_of_messages} messages long with short sentences in english at a CEFR level of ${cefr}.`
+        //prevent too long courses
+        if (num_of_messages >= 150) {
+            num_of_messages = 150;
+        }
 
-        let { conversation } = await generateBaseCourseConversation(user_prompt, tokenContext);
+        let user_prompt =
+        `Make me a conversation between two unique characters in the harry potter universe.
+         The conversation should be ${num_of_messages} messages long
+          with short sentences in english at a CEFR level of ${cefr}.
+
+          The converstion should have a well defined beginning, middle and end.
+
+          The length of the converstaion is VERY IMPORTANT. 
+
+          We will be translating the converstaion into Spanish 
+          and then generating audio from it so use simple language and words. 
+          `
+
+        let { conversation } = await generateBaseCourseConversation(user_prompt, num_of_messages,  tokenContext);
 
         //giving each message a UUID
         let messages = conversation.messages.map((message, index) => {
@@ -31,6 +46,8 @@ export const makeEnglishCourseText = async (
         })
 
         return {
+            requested_messages: num_of_messages,
+            messages_length: conversation.messages.length,
             title: conversation.title,
             description: conversation.description,
             emoji: conversation.emoji,

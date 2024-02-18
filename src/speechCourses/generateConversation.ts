@@ -2,7 +2,7 @@ import { ConversationFromGPT, ChatCompletion, gpt3_turbo } from "./utils/config"
 import { openai_client } from '../libs/openai';
 import TokenContext from "../utils/tokenContext";
 
-export async function generateBaseCourseConversation(user_prompt: string, tokenContext: TokenContext): Promise<{ conversation: ConversationFromGPT }> {
+export async function generateBaseCourseConversation(user_prompt: string, requested_messages_length: number, tokenContext: TokenContext): Promise<{ conversation: ConversationFromGPT }> {
     const function_name = "create_conversation";
 
     const tools = [
@@ -10,17 +10,17 @@ export async function generateBaseCourseConversation(user_prompt: string, tokenC
             "type": "function",
             "function": {
                 "name": function_name,
-                "description": "Create a conversation between two people. don't put names in front of the messages. ",
+                "description": "Create a conversation between two people. Never put names in front of the messages. ",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "title": {
                             type: "string",
-                            description: "A short fun title for the conversation. Don't say 'conversation' in the title",
+                            description: "A 2 or 3 word fun title for the conversation. Never say 'conversation' in the title",
                         },
                         "description": {
                             type: "string",
-                            description: "A longer description of the conversation"
+                            description: "A short sentence description of the conversation and scene"
                         },
                         "emoji": {
                             type: "string",
@@ -28,6 +28,7 @@ export async function generateBaseCourseConversation(user_prompt: string, tokenC
                         },
                         "messages": {
                             type: "array",
+                            description: "The array of " + requested_messages_length + " messages in this conversation",
                             items: {
                                 type: "object",
                                 properties: {
@@ -37,7 +38,7 @@ export async function generateBaseCourseConversation(user_prompt: string, tokenC
                                     },
                                     speaker: {
                                         type: "string",
-                                        description: "The person speaking"
+                                        description: "The name of the person who is speaking"
                                     },
                                     gender: {
                                         type: "string",
@@ -58,7 +59,7 @@ export async function generateBaseCourseConversation(user_prompt: string, tokenC
     //TODO: Require moderation for user prompts
     //TODO: inject book history into system prompt
     //TODO: add a "scene" perhaps to the function call to set the setting of the story as part of the intro?
-    let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards. `
+    let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards.`
 
     const messages = [
         {
@@ -77,6 +78,7 @@ export async function generateBaseCourseConversation(user_prompt: string, tokenC
             model: gpt3_turbo,
             messages,
             tools: tools,
+            max_tokens: 4096,
         }
 
         const response = await openai_client.post('/chat/completions', options);

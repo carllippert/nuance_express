@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { makeCourseText, makeEnglishCourseText } from "../../../speechCourses/makeSpeechCourseText";
+import { makeEnglishCourseText } from "../../../speechCourses/makeSpeechCourseText";
 
 import TokenContext from "../../../utils/tokenContext";
 
