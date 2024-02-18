@@ -89,7 +89,7 @@ export const makeSpeechCourseText = async (
         // loop through the convo and translate all the message. 
         const translated_conversation = await translateConversation(convo);
 
-        console.log(translated_conversation);
+        // console.log(translated_conversation);
 
         //count tokens fpr work done translating
         aggregate_prompt_tokens += translated_conversation.prompt_tokens;

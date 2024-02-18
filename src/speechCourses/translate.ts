@@ -24,7 +24,7 @@ export async function translateText(text): Promise<{ text: string, completion_to
             }
         });
 
-        console.log(JSON.stringify(response.data));
+        // console.log(JSON.stringify(response.data));
         let completion: ChatCompletion = response.data;
 
         const firstResponse = completion.choices[0].message.content;
