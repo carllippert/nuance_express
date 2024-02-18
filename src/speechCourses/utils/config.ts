@@ -10,10 +10,12 @@ export const female_voice = "nova"
 
 //Models
 export const tts_model = "tts-1";
-export const llm_model = "gpt-3.5-turbo";
+export const gpt3_turbo = "gpt-3.5-turbo";
 export const text_api_provider = "openai";
 export const audio_api_provider = "openai";
+export const gpt4 = "gpt-4";
 export const course_system_version = "0.0.0"; //increment this when the course system changes meaningfully
+
 
 export type ConversationFromGPT = {
     title: string;

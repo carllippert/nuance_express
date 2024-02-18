@@ -1,8 +1,8 @@
-import axios from 'axios';
-import { ConversationFromGPT, ChatCompletion, llm_model } from "./config";
+import { ConversationFromGPT, ChatCompletion, gpt3_turbo } from "./utils/config";
 import { openai_client } from '../libs/openai';
+import TokenContext from "../utils/tokenContext";
 
-export async function generateConversation(user_prompt: string): Promise<{ conversation: ConversationFromGPT, completion_tokens: number, prompt_tokens: number, total_tokens: number }> {
+export async function generateBaseCourseConversation(user_prompt: string, tokenContext: TokenContext): Promise<{ conversation: ConversationFromGPT }> {
     const function_name = "create_conversation";
 
     const tools = [
@@ -74,17 +74,10 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
     try {
 
         let options = {
-            model: llm_model,
+            model: gpt3_turbo,
             messages,
             tools: tools,
         }
-
-        // let headers = {
-        //     headers: {
-        //         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        //         'Content-Type': 'application/json'
-        //     }
-        // }
 
         const response = await openai_client.post('/chat/completions', options);
 
@@ -94,22 +87,21 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
 
         let completion: ChatCompletion = response.data;
 
+        console.log("Completion: ", JSON.stringify(completion));
+
         const firstResponse = completion.choices[0].message.tool_calls[0].function.arguments;
 
         let parsed = JSON.parse(firstResponse);
 
         console.log("Tool Calls: ", JSON.stringify(firstResponse));
 
-        const completion_tokens = completion.usage.completion_tokens;
-        const prompt_tokens = completion.usage.prompt_tokens;
-        const total_tokens = completion.usage.total_tokens;
+        tokenContext.addTokens({
+            completion_tokens: completion.usage.completion_tokens,
+            prompt_tokens: completion.usage.prompt_tokens,
+            total_tokens: completion.usage.total_tokens
+        })
 
-        return {
-            conversation: parsed,
-            completion_tokens,
-            prompt_tokens,
-            total_tokens
-        }
+        return { conversation: parsed }
 
     } catch (error) {
         console.error('Error generating conversation:', error);

@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { makeSpeechCourseText } from "../speechCourses/makeSpeechCourseText";
+import { createAndSaveSpeechCourseText } from "../../../speechCourses/makeSpeechCourseText";
 
 const routes = Router();
 
@@ -17,7 +17,7 @@ routes.get('/:minutes/:secret', async (req, res) => {
 
         let cefr = `A1`;
         let public_course = true;
-        let speech_course_id = await makeSpeechCourseText(Number(minutes), cefr, public_course);
+        let speech_course_id = await createAndSaveSpeechCourseText(Number(minutes), cefr, public_course);
 
         res.status(200).send({ speech_couse_id: speech_course_id });
     } catch (error) {

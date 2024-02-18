@@ -5,10 +5,10 @@ import OpenAI from "openai";
 import fs from "fs";
 import { PostHog } from 'posthog-node'
 
-import * as middleware from "../utils/middleware";
+import * as middleware from "../../utils/middleware";
 import {
   categorizeUserInput,
-} from "../categorize/scoring";
+} from "../../categorize/scoring";
 
 const routes = Router();
 
@@ -180,10 +180,10 @@ routes.post(
         audio: buffer,
         user_id: supabase_user_id,
         message_input_classification: is_question ? "question" : "reading",
-        user_message, 
+        user_message,
         completion_text,
       };
-      
+
       message_end_time = new Date();
       message_time_duration = message_end_time.getTime() - message_start_time.getTime();
       res.status(200).send(response);

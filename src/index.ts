@@ -1,20 +1,24 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
-import whisperRoute from "./routes/whisperRouter";
+import whisperRoute from "./routes/reading/readingRoute";
 import talkRoute from "./routes/talk";
-import requestSpeechCourseRoute from "./routes/requestSpeechCourse";
+import requestSpeechCourseRoute from "./routes/speech_course/createCourseRequestRoute";
 import processSpeechCourseRequestRoute from "./routes/webhooks/processSpeechCourseRequest";
 import processSpeechCourseAudioGenerationRequestRoute from "./routes/webhooks/processCourseAudioGenerationRequest";
 
 import processMessageRoute from "./routes/webhooks/processMessages";
 import wordActivityRoute from "./routes/wordActivity";
-import inviteUserRoute from "./routes/inviteUser";
-import promoRoute from "./routes/promoCodes";
-import webPromoRoute from "./routes/webPromoCode";
+import inviteUserRoute from "./routes/user_admin/inviteUser";
+import promoRoute from "./routes/user_admin/promoCodes";
+import webPromoRoute from "./routes/user_admin/webPromoCode";
 import revCatWebhookRoute from "./routes/webhooks/revCatWebhook";
 import processRevcatWebhookRoute from "./routes/webhooks/processRevcatWebhooks";
 import processAuthChangeRoute from "./routes/webhooks/processAuthChange";
 import * as middleware from "./utils/middleware";
+
+//Test Routes
+import testTextCourseRoute from "./routes/speech_course/testing_only/makeTextCourseTestRoute"
+
 
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
@@ -64,7 +68,7 @@ app.use("/word-activity", wordActivityRoute)
 app.use("/promo", promoRoute)
 app.use("/web-promo", webPromoRoute)
 app.use("/talk", talkRoute)
-// app.use("/speech-course", speechCourseRoute)
+
 
 app.use("/invite", inviteUserRoute)
 
@@ -88,6 +92,10 @@ app.use("/webhooks/process-course-audio-generation-request", processSpeechCourse
 //4. The course audio is generated and stored in the database 
 //5. Course is marked processed and "ready"
 //6. Database permisions allow user to download "ready" courses and see processing of their own courses
+
+//Testing Routes ( Escape hatches for more embedded parts of making the courses )
+// app.use("/speech-course", speechCourseRoute)
+app.use("/test/mtc", testTextCourseRoute)
 
 //Webhooks from external systems
 app.use("/webhooks/revenuecat", revCatWebhookRoute);
