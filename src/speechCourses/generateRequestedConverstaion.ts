@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { makeSpeechCourseText } from "./makeSpeechCourseText";
 
-export const generateRequestConversation = async (request_id: string) => {
+export const generateRequestedConversation = async (request_id: string) => {
     try {
 
         //Fetch request from supabase

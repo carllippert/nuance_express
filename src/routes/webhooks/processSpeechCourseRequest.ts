@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as Sentry from "@sentry/node";
 import type { Payload } from "./supabase_webhook_types";
-import { generateRequestConversation } from "../../speechCourses/generateRequestConversation";
+import { generateRequestedConversation } from "../../speechCourses/generateRequestedConverstaion";
 
 const routes = Router();
 
@@ -22,7 +22,7 @@ routes.post("/", async (req, res) => {
 
             if (generate_immediately && speech_course_generation_request_id) {
                 //generate the course
-                await generateRequestConversation(speech_course_generation_request_id);
+                await generateRequestedConversation(speech_course_generation_request_id);
             }
         }
 

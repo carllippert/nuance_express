@@ -11,20 +11,28 @@ routes.post("/", async (req, res) => {
 
         let event: Payload = req.body;
 
-        //If the request is new and is a request to generate immediately, then generate the course
-        if (event.type === 'INSERT' && event.table === 'speech_course_assets') {
-            let row = event.record;
-            await generateAudioForCourseMessage(row);
-        }
-
+        //signal webhook received
         res.status(200).send();
 
+        // Defer the processing of the event to ensure immediate response
+        setImmediate(async () => {
+            // If the request is new and is a request to generate immediately, then generate the course
+            if (event.type === 'INSERT' && event.table === 'speech_course_assets') {
+                let row = event.record;
+                try {
+                    await generateAudioForCourseMessage(row);
+                } catch (error) {
+                    console.log("Error in audio generation", error);
+                    Sentry.captureMessage("Error in audio generation");
+                    Sentry.captureException(error);
+                }
+            }
+        });
+
     } catch (error) {
-        console.log("Error creating audio assets for course", error);
-        Sentry.captureMessage("Error creating audio assets for course");
+        console.log("Error in audio webhook", error);
+        Sentry.captureMessage("Error in audio webhook");
         Sentry.captureException(error);
-        // throw error;
-        res.status(500).send({ message: error.message });
     }
 });
 
