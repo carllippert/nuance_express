@@ -88,12 +88,9 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
 
         const response = await openai_client.post('/chat/completions', options);
 
-        // let attempts = response.config.__retryCount;
-        // const retries = response.config.__retryCount || 0; // Default to 0 if not present
-        // const retries = response.config?.retry || 0;
-        // console.log("We attempted to create conversation ", retries, " times.");
+        let attempts = response.config['axios-retry'].retryCount;
 
-        // console.log("We attempted to create converstaion ", attempts, " times.");
+        console.log("Retry Attempts in genreateConversation: ", attempts);
 
         let completion: ChatCompletion = response.data;
 
