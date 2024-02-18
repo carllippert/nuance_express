@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ConversationFromGPT, ChatCompletion, llm_model } from "./config";
+import { openai_client } from '../libs/openai';
 
 export async function generateConversation(user_prompt: string): Promise<{ conversation: ConversationFromGPT, completion_tokens: number, prompt_tokens: number, total_tokens: number }> {
     const function_name = "create_conversation";
@@ -78,14 +79,18 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
             tools: tools,
         }
 
-        let headers = {
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        }
+        // let headers = {
+        //     headers: {
+        //         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        //         'Content-Type': 'application/json'
+        //     }
+        // }
 
-        const response = await axios.post('https://api.openai.com/v1/chat/completions', options, headers);
+        const response = await openai_client.post('/chat/completions', options);
+
+        let attempts = response.config['axios-retry'].retries;
+
+        console.log("We attempted to create converstaion ", attempts, " times.");
 
         let completion: ChatCompletion = response.data;
 
@@ -107,7 +112,7 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
         }
 
     } catch (error) {
-        console.error('Error translating text:', error);
+        console.error('Error generating conversation:', error);
         throw error;
     }
 }
