@@ -18,6 +18,8 @@ routes.get('/:minutes/:cefr/:secret', async (req, res) => {
 
         let { speech_course_id, speech_course_generation_request_id } = await requestCourse(Number(minutes), cefr, false, true);
 
+        console.log("Course request created", speech_course_id, speech_course_generation_request_id);
+
         res.status(200).send({ speech_course_id, speech_course_generation_request_id });
     } catch (error) {
         res.status(500).send(error);
