@@ -5,12 +5,11 @@ import {
     female_voice,
     translation_prompt,
     llm_model,
-    api_provider
+    text_api_provider
 } from "./config";
 
 export async function saveCourseText(speech_course_id, conversation) {
     try {
-
         // Create a single supabase client
         const supabase = createClient(
             process.env.SUPABASE_URL || "",
@@ -37,7 +36,7 @@ export async function saveCourseText(speech_course_id, conversation) {
                     pair_asset_id: message.pair_asset_id,
                     add_empty_space_after_playing: true,
                     llm: llm_model,
-                    api_provider,
+                    text_api_provider,
                     prompt_details: { prompt: translation_prompt }
                 }
             }))

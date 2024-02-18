@@ -1,6 +1,7 @@
-import { tts_model, api_provider } from "./config";
+import { tts_model, text_api_provider, audio_api_provider } from "./config";
 import { convertTextToSpeech } from "./tts";
 import { createClient } from "@supabase/supabase-js";
+import { updateCourseStatusIfReady } from "./updateCourseStatus";
 
 export type SpeechCourseAsset = {
     speech_course_asset_id: string;
@@ -72,7 +73,8 @@ export const generateAudioForCourseMessage = async (speechCourseAsset: SpeechCou
                 asset_duration_ms,
                 audio_metadata,
                 storage_bucket,
-                api_provider,
+                text_api_provider,
+                audio_api_provider,
                 ready: true
             })
             .eq('speech_course_asset_id', asset_id);
@@ -82,7 +84,8 @@ export const generateAudioForCourseMessage = async (speechCourseAsset: SpeechCou
             throw assetError;
         }
 
-        //TODO: check to see if the whole course is ready and do the work to mark it as ready if it is
+        await updateCourseStatusIfReady(speech_course_id);
+
         return;
     }
     catch (error) {

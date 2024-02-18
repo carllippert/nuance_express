@@ -3,8 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 
 import { generateConversation } from "./generateConversation";
 import { translateConversation } from "./translate";
-// import { saveIndividualAudioAssets } from "./saveToSupbase";
-// import { createAudio } from "./tts"
 import { saveCourseText } from './saveCourseText';
 
 const average_words_per_minute = 150;
@@ -49,9 +47,6 @@ export const makeSpeechCourseText = async (
         let user_prompt = `Make me a conversation between two unique characters in the harry potter universe.
          The conversation should be ${rounded_messages} messages long with short sentences in english at a CEFR level of ${cefr}.`
 
-        //TODO: allow passing in of speech_course_id in_case its an immediate request from client
-        //If client passes the ID we can then manage coredata on return because we know course id in advance
-
         let { conversation, prompt_tokens, total_tokens, completion_tokens } = await generateConversation(user_prompt);
 
         //Count tokens form generating the convo
@@ -89,41 +84,14 @@ export const makeSpeechCourseText = async (
         // loop through the convo and translate all the message. 
         const translated_conversation = await translateConversation(convo);
 
-        // console.log(translated_conversation);
-
         //count tokens fpr work done translating
         aggregate_prompt_tokens += translated_conversation.prompt_tokens;
         aggregate_total_tokens += translated_conversation.total_tokens;
         aggregate_completion_tokens += translated_conversation.completion_tokens;
 
-        //TODO: add back after we have tested some of the other stuff
-        //loop through the convo 
-        ////////////////////////////////////////////////////////////////////// 
-        ////// BIG REFACTOR //////////
-        ////////////////////////////////////////////////////////////////////////////////////////////////
-        //TODO: refactor this out into a processing job because our rate limit is 100 Requests Per Minute
-
         //Save individual messages
         await saveCourseText(speech_course_id, translated_conversation.messages);
-        // const audioConversation: ConversationMessage[] = await createAudio(translated_conversation.messages);
-
-        // await saveIndividualAudioAssets(speech_course_id, audioConversation);
-
-        //Calculate total duration of the audio
-        // let course_duration_ms = audioConversation.reduce((acc, message) => {
-        //     return acc + (message.metadata.format.duration * 1000); //convert to milliseconds
-        // }, 0);
-
-        //calculate course duration in minutes
-        // let course_duration_seconds = Math.round(course_duration_ms / 1000);
-
-        let course_words = Math.round(translated_conversation.messages.reduce((acc, message) => {
-            return acc + (message.text.split(" ")).length;
-        }, 0));
-
-        // const words_per_minute = Math.round(course_words / (course_duration_ms / 60000));
-        // const words_per_second = Math.round(course_words / (course_duration_ms / 1000));
-
+    
         // //save url to storage object in speeh_course table
         const { data: speech_course_data, error: speech_course_error } = await supabase
             .from('speech_courses')
@@ -137,11 +105,6 @@ export const makeSpeechCourseText = async (
                 total_tokens: aggregate_total_tokens,
                 completion_tokens: aggregate_completion_tokens,
                 cefr,
-                // course_duration_ms,
-                // words_per_minute,
-                // words_per_second,
-                course_word_count: course_words,
-                // course_duration_seconds
             })
             .eq('speech_course_id', speech_course_id)
 

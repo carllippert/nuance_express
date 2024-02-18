@@ -11,7 +11,8 @@ export const female_voice = "nova"
 //Models
 export const tts_model = "tts-1";
 export const llm_model = "gpt-3.5-turbo";
-export const api_provider = "openai";
+export const text_api_provider = "openai";
+export const audio_api_provider = "openai";
 
 export type ConversationFromGPT = {
     title: string;
