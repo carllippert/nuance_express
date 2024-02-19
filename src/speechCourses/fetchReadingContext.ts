@@ -33,7 +33,7 @@ export const fetchReadingContext = async (user_id: UUID) => {
 
         console.log("response_messages", response_messages);
 
-        return response_messages;
+        return response_messages.reverse();
     }
     catch (error) {
         console.error("Error fetching reading context:", error);
