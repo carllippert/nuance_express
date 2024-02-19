@@ -16,5 +16,10 @@ export const calculateLength = (requested_length_in_minutes: number) => {
 
     let rounded_messages = Math.round(requested_number_of_messages);
 
+    //protect number of messages we ever try to make
+    if (rounded_messages > 150) {
+        rounded_messages = 150;
+    }
+
     return rounded_messages;
 }

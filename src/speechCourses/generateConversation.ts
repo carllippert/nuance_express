@@ -1,8 +1,9 @@
+import { v4 as uuid } from 'uuid';
 import { ConversationFromGPT, ChatCompletion, gpt3_turbo } from "./utils/config";
 import { openai_client } from '../libs/openai';
 import TokenContext from "../utils/tokenContext";
 
-export async function generateBaseCourseConversation(user_prompt: string, requested_messages_length: number, tokenContext: TokenContext): Promise<{ conversation: ConversationFromGPT }> {
+export async function generateBaseCourseConversation(user_prompt: string, sytsem_prompt: string, requested_messages_length: number, tokenContext: TokenContext): Promise<ConversationFromGPT> {
     const function_name = "create_conversation";
 
     const tools = [
@@ -59,12 +60,12 @@ export async function generateBaseCourseConversation(user_prompt: string, reques
     //TODO: Require moderation for user prompts
     //TODO: inject book history into system prompt
     //TODO: add a "scene" perhaps to the function call to set the setting of the story as part of the intro?
-    let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards.`
+    // let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards.`
 
     const messages = [
         {
             role: "system",
-            content: course_generation_prompt,
+            content: sytsem_prompt,
         },
         {
             role: "user",
@@ -73,6 +74,7 @@ export async function generateBaseCourseConversation(user_prompt: string, reques
     ]
 
     try {
+
 
         let options = {
             model: gpt3_turbo,
@@ -93,9 +95,16 @@ export async function generateBaseCourseConversation(user_prompt: string, reques
 
         const firstResponse = completion.choices[0].message.tool_calls[0].function.arguments;
 
-        let parsed = JSON.parse(firstResponse);
+        let conversation: ConversationFromGPT = JSON.parse(firstResponse);
 
         console.log("Tool Calls: ", JSON.stringify(firstResponse));
+
+        //giving each message a UUID
+        let processed_messages = conversation.messages.map((message, index) => {
+            return { ...message, asset_id: uuid(), language: "en" }
+        })
+
+        conversation.messages = processed_messages;
 
         tokenContext.addTokens({
             completion_tokens: completion.usage.completion_tokens,
@@ -103,7 +112,7 @@ export async function generateBaseCourseConversation(user_prompt: string, reques
             total_tokens: completion.usage.total_tokens
         })
 
-        return { conversation: parsed }
+        return conversation;
 
     } catch (error) {
         console.error('Error generating conversation:', error);

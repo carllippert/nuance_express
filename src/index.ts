@@ -18,7 +18,7 @@ import * as middleware from "./utils/middleware";
 
 //Test Routes
 import testTextCourseRoute from "./routes/speech_course/testing_only/makeTextCourseTestRoute"
-
+import testTextCourseBookRoute from "./routes/speech_course/testing_only/makeTextCourseWithBookData"
 
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
@@ -96,6 +96,7 @@ app.use("/webhooks/process-course-audio-generation-request", processSpeechCourse
 //Testing Routes ( Escape hatches for more embedded parts of making the courses )
 // app.use("/speech-course", speechCourseRoute)
 app.use("/test/mtc", testTextCourseRoute)
+app.use("/test/mtcb", testTextCourseBookRoute)
 
 //Webhooks from external systems
 app.use("/webhooks/revenuecat", revCatWebhookRoute);
