@@ -18,9 +18,7 @@ export const makeCourseText = async (
     try {
         let speech_course_id = speech_course_id_arg || uuid();
 
-        let tokenContext = new TokenContext();
-
-        let { emoji, description, messages: english_messages, title }: ConversationFromGPT = await generateBaseCourseConversation(default_course_creation_user_prompt, default_course_creation_system_prompt, requested_length_in_minutes, tokenContext);
+        let { emoji, description, messages: english_messages, title }: ConversationFromGPT = await generateBaseCourseConversation(default_course_creation_user_prompt, default_course_creation_system_prompt, tokenContext);
 
         // loop through the convo and translate all the message. 
         const { messages } = await translateConversation(english_messages, tokenContext);

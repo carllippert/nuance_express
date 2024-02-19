@@ -17,7 +17,7 @@ export const fetchReadingContext = async (user_id: UUID) => {
             .eq("message_input_classification", "reading") //Don't grab questions from the user
             .eq("message_processed", true) //only messages we beleive are Spanish
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(100);
 
         if (error) {
             console.error("Error fetching reading context:", error);

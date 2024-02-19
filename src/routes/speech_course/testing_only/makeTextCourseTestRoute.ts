@@ -20,7 +20,7 @@ routes.get('/:minutes/:cefr/:secret', async (req, res) => {
 
         let tokenContext = new TokenContext();
 
-        let course = await generateBaseCourseConversation(default_course_creation_user_prompt, default_course_creation_system_prompt, Number(minutes), tokenContext);
+        let course = await generateBaseCourseConversation(default_course_creation_user_prompt, default_course_creation_system_prompt, tokenContext);
 
         res.status(200).send({ course, ...tokenContext.fetchContext() });
     } catch (error) {

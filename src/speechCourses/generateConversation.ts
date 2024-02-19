@@ -3,7 +3,7 @@ import { ConversationFromGPT, ChatCompletion, gpt3_turbo } from "./utils/config"
 import { openai_client } from '../libs/openai';
 import TokenContext from "../utils/tokenContext";
 
-export async function generateBaseCourseConversation(user_prompt: string, sytsem_prompt: string, requested_messages_length: number, tokenContext: TokenContext): Promise<ConversationFromGPT> {
+export async function generateBaseCourseConversation(user_prompt: string, sytsem_prompt: string, tokenContext: TokenContext): Promise<ConversationFromGPT> {
     const function_name = "create_conversation";
 
     const tools = [
@@ -29,7 +29,6 @@ export async function generateBaseCourseConversation(user_prompt: string, sytsem
                         },
                         "messages": {
                             type: "array",
-                            description: "The array of " + requested_messages_length + " messages in this conversation",
                             items: {
                                 type: "object",
                                 properties: {
@@ -47,7 +46,7 @@ export async function generateBaseCourseConversation(user_prompt: string, sytsem
                                         description: "The person speakings gender"
                                     }
                                 },
-                                required: ["text"]
+                                required: ["text", "speaker", "gender"]
                             }
                         }
                     },
@@ -91,13 +90,13 @@ export async function generateBaseCourseConversation(user_prompt: string, sytsem
 
         let completion: ChatCompletion = response.data;
 
-        console.log("Completion: ", JSON.stringify(completion));
+        // console.log("Completion: ", JSON.stringify(completion));
 
         const firstResponse = completion.choices[0].message.tool_calls[0].function.arguments;
 
         let conversation: ConversationFromGPT = JSON.parse(firstResponse);
 
-        console.log("Tool Calls: ", JSON.stringify(firstResponse));
+        // console.log("Tool Calls: ", JSON.stringify(firstResponse));
 
         //giving each message a UUID
         let processed_messages = conversation.messages.map((message, index) => {
