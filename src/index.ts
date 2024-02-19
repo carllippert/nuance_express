@@ -7,7 +7,6 @@ import processSpeechCourseRequestRoute from "./routes/webhooks/processSpeechCour
 import processSpeechCourseAudioGenerationRequestRoute from "./routes/webhooks/processCourseAudioGenerationRequest";
 
 import processMessageRoute from "./routes/webhooks/processMessages";
-import wordActivityRoute from "./routes/wordActivity";
 import inviteUserRoute from "./routes/user_admin/inviteUser";
 import promoRoute from "./routes/user_admin/promoCodes";
 import webPromoRoute from "./routes/user_admin/webPromoCode";
@@ -64,7 +63,6 @@ app.get("/", (req: Request, res: Response) => {
 
 //Routes used in applications
 app.use("/upload", whisperRoute)
-app.use("/word-activity", wordActivityRoute)
 app.use("/promo", promoRoute)
 app.use("/web-promo", webPromoRoute)
 app.use("/talk", talkRoute)

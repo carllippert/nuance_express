@@ -10,11 +10,10 @@ export const makeBookDataEnrichedSpeechCourse = async (
     cefr: string,
     tokenContext: TokenContext
 ) => {
+
     //fetch book data from users
     //Hard coded to carl for testing
-
-    let book_data = await fetchReadingContext("f1f14a10-dfa5-470c-b01c-ac6a533cd453");
-
+    let book_data = await fetchReadingContext("f1f14a10-dfa5-470c-b01c-ac6a533cd453", 40);
 
     let book_vibes = await getBookVibes(book_data, tokenContext);
 

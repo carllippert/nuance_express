@@ -1,7 +1,7 @@
 import { UUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
-export const fetchReadingContext = async (user_id: UUID) => {
+export const fetchReadingContext = async (user_id: UUID, limit: number) => {
     try {
         //fetch users reading activity for last 24 hours in supabase
         const supabase = createClient(
@@ -17,7 +17,7 @@ export const fetchReadingContext = async (user_id: UUID) => {
             .eq("message_input_classification", "reading") //Don't grab questions from the user
             .eq("message_processed", true) //only messages we beleive are Spanish
             .order('created_at', { ascending: false })
-            .limit(100);
+            .limit(limit);
 
         if (error) {
             console.error("Error fetching reading context:", error);

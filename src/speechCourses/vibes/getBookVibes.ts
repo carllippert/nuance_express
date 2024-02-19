@@ -7,8 +7,10 @@ export const getBookVibes = async (book_data: string[], tokenContext: TokenConte
 
     let system_prompt = `
     You are the worlds best librarian. You know every book ever written.
-    Identify the book title and chapter as well as the key theme, characters, setting of the book for the users provided book excerpt.
+    Identify the book title and chapter as well as the key theme, characters, 
+    setting of the book for the users provided book excerpt.
     `
+
     let user_prompt = `
     Evalute this book data
     
@@ -84,10 +86,7 @@ export const getBookVibes = async (book_data: string[], tokenContext: TokenConte
         }
     ]
 
-
     try {
-
-
         let options = {
             model: gpt3_turbo,
             messages,
@@ -102,8 +101,6 @@ export const getBookVibes = async (book_data: string[], tokenContext: TokenConte
         console.log("Retry Attempts in genreateConversation: ", attempts);
 
         let completion: ChatCompletion = response.data;
-
-        // console.log("Completion: ", JSON.stringify(completion));
 
         const firstResponse = completion.choices[0].message.tool_calls[0].function.arguments;
 
