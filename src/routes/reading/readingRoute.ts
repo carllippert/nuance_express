@@ -31,7 +31,7 @@ type SupabaseMessage = {
 import { createClient } from "@supabase/supabase-js";
 
 //statics
-let transciption_model = "whisper-1";
+export let transciption_model = "whisper-1";
 let text_to_speech_model = "tts-1";
 let llm_model = "gpt-3.5-turbo";
 
@@ -152,8 +152,6 @@ routes.post(
         llm_start_time,
         llm_end_time
       } = await fetchCompletion(prompt, user_message);
-
-
 
       //Delete file
       fs.unlinkSync(req.file.path);
