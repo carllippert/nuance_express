@@ -1,40 +1,21 @@
-
 import WebSocket from "ws";
-// import { wss } from "../../index";
 const VAD = require('node-vad');
-
 import { transcribeAudio } from './transcribeAudio';
 
-// const server = http.createServer(app);
-// const wss = new WebSocket.Server({ noServer: true });
-
-// server.on("upgrade", (request, socket, head) => {
-
-//     console.log("Request URL in WS upgrade:", request);
-
-//     const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
-
-//     if (pathname === "/websockets/vad") {
-//         wss.handleUpgrade(request, socket, head, (ws) => {
-//             wss.emit("connection", ws, request);
-//         });
-//     } else {
-//         socket.destroy();
-//     }
-// });
-
-// wss.on("connection", (ws: WebSocket) => {
-//     console.log("New WebSocket connection", ws.url);
-//     if(ws.url === "/vad") {
-//      new WebSocketWithVAD(ws); 
-//     }// Use the class for each connection
-// });
-
-
 export class WebSocketWithVAD {
-    private vadProcessor = new VAD(VAD.Mode.NORMAL);
+    // private vadProcessor = new VAD(VAD.Mode.NORMAL);
+    private vadProcessor = new VAD(VAD.Mode.AGGRESSIVE);
     private isUserSpeaking = false;
     private audioBuffer: Buffer = Buffer.alloc(0);
+
+    private silenceTimeout: NodeJS.Timeout | null = null;
+    private readonly silenceThreshold = 2000; // 2 seconds of silence before processing
+
+    //debouncing start time
+    private speechStartThreshold = 7; // Number of consecutive speech detections needed to confirm start
+    private consecutiveSpeechDetections = 0; // Counter for consecutive speech detections
+    private speechDetectionTimeout: NodeJS.Timeout | null = null;
+    private readonly speechDetectionInterval = 400; // Interval in milliseconds to wait for another speech event
 
     constructor(private ws: WebSocket) {
         this.setupWebSocket();
@@ -53,24 +34,52 @@ export class WebSocketWithVAD {
         this.vadProcessor.processAudio(audioChunk, 16000).then((res: any) => {
             switch (res) {
                 case VAD.Event.VOICE:
-                    console.log("Voice detected");
-                    this.isUserSpeaking = true;
+
+                    this.consecutiveSpeechDetections += 1;
+                    this.ws.send("VD" + this.consecutiveSpeechDetections);
+                    if (this.consecutiveSpeechDetections >= this.speechStartThreshold && !this.isUserSpeaking) {
+                        // Confirmed speech start
+                        console.log("Confirmed speech start");
+                        this.ws.send("Confirmed speech start");
+                        this.isUserSpeaking = true;
+                    }
+                    this.resetSpeechDetectionTimeout();
                     this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
+                    this.resetSilenceTimeout();
                     break;
                 case VAD.Event.NOISE:
-                    console.log("Noise detected");
-                    break;
                 case VAD.Event.SILENCE:
-                    if (this.isUserSpeaking) {
-                        this.isUserSpeaking = false;
-                        this.transcribeAndHandle(this.audioBuffer).catch(console.error);
-                        this.audioBuffer = Buffer.alloc(0);
-                    }
+                    // Reset consecutive speech detections if noise or silence is detected
+                    this.consecutiveSpeechDetections = 0;
                     break;
                 default:
                     console.log("Error or unknown VAD event");
             }
         }).catch(console.error);
+    }
+
+    private resetSpeechDetectionTimeout(): void {
+        if (this.speechDetectionTimeout) {
+            clearTimeout(this.speechDetectionTimeout);
+        }
+        this.speechDetectionTimeout = setTimeout(() => {
+            this.consecutiveSpeechDetections = 0; // Reset counter if no further speech detected within interval
+        }, this.speechDetectionInterval);
+    }
+
+    private resetSilenceTimeout(): void {
+        if (this.silenceTimeout) {
+            clearTimeout(this.silenceTimeout);
+        }
+        this.silenceTimeout = setTimeout(() => {
+            if (this.isUserSpeaking) {
+                this.isUserSpeaking = false;
+                this.ws.send("Lets Transcribe");
+                this.isUserSpeaking = false;
+                this.transcribeAndHandle(this.audioBuffer).catch(console.error);
+                this.audioBuffer = Buffer.alloc(0);
+            }
+        }, this.silenceThreshold);
     }
 
     private async transcribeAndHandle(audioData: Buffer): Promise<void> {
