@@ -1,6 +1,6 @@
 
 import WebSocket from "ws";
-import { wss } from "../../index";
+// import { wss } from "../../index";
 const VAD = require('node-vad');
 
 import { transcribeAudio } from './transcribeAudio';
@@ -23,16 +23,16 @@ import { transcribeAudio } from './transcribeAudio';
 //     }
 // });
 
-wss.on("connection", (ws: WebSocket) => {
-    console.log("New WebSocket connection", ws.url);
-    if(ws.url === "/vad") {
-     new WebSocketWithVAD(ws); 
-    }// Use the class for each connection
-});
+// wss.on("connection", (ws: WebSocket) => {
+//     console.log("New WebSocket connection", ws.url);
+//     if(ws.url === "/vad") {
+//      new WebSocketWithVAD(ws); 
+//     }// Use the class for each connection
+// });
 
 
 export class WebSocketWithVAD {
-    private vadProcessor = VAD(VAD.Mode.NORMAL);
+    private vadProcessor = new VAD(VAD.Mode.NORMAL);
     private isUserSpeaking = false;
     private audioBuffer: Buffer = Buffer.alloc(0);
 
@@ -43,6 +43,7 @@ export class WebSocketWithVAD {
     private setupWebSocket(): void {
         this.ws.on("message", (message: WebSocket.Data) => {
             if (Buffer.isBuffer(message)) {
+                console.log("Received audio chunk");
                 this.processAudioChunk(message);
             }
         });
@@ -52,10 +53,13 @@ export class WebSocketWithVAD {
         this.vadProcessor.processAudio(audioChunk, 16000).then((res: any) => {
             switch (res) {
                 case VAD.Event.VOICE:
+                    console.log("Voice detected");
                     this.isUserSpeaking = true;
                     this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
                     break;
                 case VAD.Event.NOISE:
+                    console.log("Noise detected");
+                    break;
                 case VAD.Event.SILENCE:
                     if (this.isUserSpeaking) {
                         this.isUserSpeaking = false;
@@ -71,6 +75,7 @@ export class WebSocketWithVAD {
 
     private async transcribeAndHandle(audioData: Buffer): Promise<void> {
         try {
+            console.log("Transcribing audio...");
             const transcription: string = await transcribeAudio(audioData); // Implement this based on your transcription service
             console.log("Transcription:", transcription);
             this.ws.send(JSON.stringify({ transcription }));

@@ -2,6 +2,8 @@ import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws'
 import { configureExpressRoutes } from './configureExpressRoutes';
 
+import { WebSocketWithVAD } from './routes/websockets/websocketSetup';
+
 if (process.env.NODE_ENV !== "production") {
     require("dotenv").config();
 }
@@ -44,17 +46,19 @@ server.on('upgrade', (request, socket, head) => {
 })
 
 wss.on('connection', (ws: WebSocket, request) => {
-    ws.on('error', onSocketPostError);
-    ws.on('message', (message, isBinary) => {
-        console.log('Received message:', message);
-        wss.clients.forEach(client => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(message, { binary: isBinary });
-                console.log('Sent message:', message);
-            }
-        })
-    })
-    ws.on('close', () => {
-        console.log('Connection Closed');
-    })
+    console.log('New WebSocket connection', request.url);
+    new WebSocketWithVAD(ws);
+    // ws.on('error', onSocketPostError);
+    // ws.on('message', (message, isBinary) => {
+    //     console.log('Received message:', message);
+    //     wss.clients.forEach(client => {
+    //         if (client !== ws && client.readyState === WebSocket.OPEN) {
+    //             client.send(message, { binary: isBinary });
+    //             console.log('Sent message:', message);
+    //         }
+    //     })
+    // })
+    // ws.on('close', () => {
+    //     console.log('Connection Closed');
+    // })
 })
