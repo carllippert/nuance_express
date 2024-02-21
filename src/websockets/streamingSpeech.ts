@@ -43,6 +43,7 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => 
                 'pipe:1'             // Output to stdout
             ]);
 
+            //AUDIO IS WORKIGN! BUT HORRIBLE!
             // Handle errors
             ffmpegProcess.stderr.on('data', (data) => {
                 console.error(`FFmpeg error: ${data}`);
