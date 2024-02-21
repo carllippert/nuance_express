@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import TokenContext from "../../../utils/tokenContext";
 import { generateBaseCourseConversation } from "../../../speechCourses/generateConversation";
-import { default_course_creation_system_prompt, default_course_creation_user_prompt } from "../../../speechCourses/utils/config";
+import { default_course_creation_system_prompt, default_course_creation_user_prompt } from "../../../utils/config";
 
 const routes = Router();
 

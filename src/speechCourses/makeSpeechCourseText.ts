@@ -6,7 +6,7 @@ import { saveSpeechCourseText } from './saveCourseText';
 import { calculateLength } from './utils/calculateLength';
 
 import TokenContext from '../utils/tokenContext';
-import { ConversationFromGPT, default_course_creation_system_prompt, default_course_creation_user_prompt } from './utils/config';
+import { ConversationFromGPT, default_course_creation_system_prompt, default_course_creation_user_prompt } from '../utils/config';
 
 export const makeCourseText = async (
     requested_length_in_minutes: number,

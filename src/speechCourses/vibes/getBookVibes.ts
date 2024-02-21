@@ -1,6 +1,6 @@
 import TokenContext from "../../utils/tokenContext"
 import { openai_client } from "../../libs/openai"
-import { gpt3_turbo, ChatCompletion } from "../utils/config";
+import { gpt3_turbo, ChatCompletion } from "../../utils/config";
 
 
 export const getBookVibes = async (book_data: string[], tokenContext: TokenContext) => {

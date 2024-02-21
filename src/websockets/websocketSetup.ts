@@ -1,6 +1,7 @@
 import WebSocket from "ws";
 const VAD = require('node-vad');
 import { transcribeAudio } from './transcribeAudio';
+import { genStreamingSpeech } from "./streamingSpeech";
 
 export class WebSocketWithVAD {
     // private vadProcessor = new VAD(VAD.Mode.NORMAL);
@@ -36,11 +37,12 @@ export class WebSocketWithVAD {
                 case VAD.Event.VOICE:
 
                     this.consecutiveSpeechDetections += 1;
-                    this.ws.send("VD" + this.consecutiveSpeechDetections);
+                    this.ws.send(JSON.stringify({ key: "message", value: "Consecutive Speech Detections " + this.consecutiveSpeechDetections }));
                     if (this.consecutiveSpeechDetections >= this.speechStartThreshold && !this.isUserSpeaking) {
                         // Confirmed speech start
                         console.log("Confirmed speech start");
-                        this.ws.send("Confirmed speech start");
+                        this.ws.send(JSON.stringify({ key: "message", value: "Confirmed Speech Start" }));
+                        this.ws.send(JSON.stringify({ key: "server_state", value: "listening" }));
                         this.isUserSpeaking = true;
                     }
                     this.resetSpeechDetectionTimeout();
@@ -68,13 +70,16 @@ export class WebSocketWithVAD {
     }
 
     private resetSilenceTimeout(): void {
+
         if (this.silenceTimeout) {
             clearTimeout(this.silenceTimeout);
         }
+
         this.silenceTimeout = setTimeout(() => {
             if (this.isUserSpeaking) {
                 this.isUserSpeaking = false;
-                this.ws.send("Lets Transcribe");
+                this.ws.send(JSON.stringify({ key: "message", value: "Starting Transcription" }));
+                this.ws.send(JSON.stringify({ key: "server_state", value: "thinking" }));
                 this.isUserSpeaking = false;
                 this.transcribeAndHandle(this.audioBuffer).catch(console.error);
                 this.audioBuffer = Buffer.alloc(0);
@@ -87,10 +92,13 @@ export class WebSocketWithVAD {
             console.log("Transcribing audio...");
             const transcription: string = await transcribeAudio(audioData); // Implement this based on your transcription service
             console.log("Transcription:", transcription);
-            this.ws.send(JSON.stringify({ transcription }));
+            this.ws.send(JSON.stringify({ key: "message", value: transcription }));
+
+            genStreamingSpeech(transcription, this.ws);
+
         } catch (error) {
             console.error("Error transcribing audio:", error);
-            this.ws.send(JSON.stringify({ error: "Error transcribing audio" }));
+            this.ws.send(JSON.stringify({ key: "error", value: "Error transcribing audio" }));
         }
     }
 }

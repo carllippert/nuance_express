@@ -2,7 +2,7 @@ import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws'
 import { configureExpressRoutes } from './configureExpressRoutes';
 
-import { WebSocketWithVAD } from './routes/websockets/websocketSetup';
+import { WebSocketWithVAD } from './websockets/websocketSetup';
 
 if (process.env.NODE_ENV !== "production") {
     require("dotenv").config();

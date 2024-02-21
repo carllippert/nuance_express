@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { v4 as uuid } from 'uuid';
-import { translation_prompt, ChatCompletion, ConversationMessage } from "./utils/config";
+import { translation_prompt, ChatCompletion, ConversationMessage } from "../utils/config";
 import TokenContext from '../utils/tokenContext';
 
 export async function translateText(text): Promise<{ text: string, completion_tokens: number, prompt_tokens: number, total_tokens: number }> {
@@ -77,7 +77,7 @@ export async function translateConversation(conversation: ConversationMessage[],
 
     //loop through to results
     translatedResponses.forEach((response) => {
-        
+
         tokenContext.addTokens({
             completion_tokens: response.completion_tokens,
             prompt_tokens: response.prompt_tokens,

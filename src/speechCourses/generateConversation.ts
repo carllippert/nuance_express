@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { ConversationFromGPT, ChatCompletion, gpt3_turbo } from "./utils/config";
+import { ConversationFromGPT, ChatCompletion, gpt3_turbo } from "../utils/config";
 import { openai_client } from '../libs/openai';
 import TokenContext from "../utils/tokenContext";
 

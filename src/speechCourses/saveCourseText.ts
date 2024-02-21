@@ -7,9 +7,9 @@ import {
     gpt3_turbo,
     text_api_provider,
     course_system_version
-} from "./utils/config";
+} from "../utils/config";
 
-import { ConversationMessage } from "./utils/config";
+import { ConversationMessage } from "../utils/config";
 
 import TokenContext from '../utils/tokenContext';
 
