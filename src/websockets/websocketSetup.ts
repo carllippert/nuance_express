@@ -1,17 +1,19 @@
 import WebSocket from "ws";
 const VAD = require('node-vad');
 import { transcribeAudio } from './transcribeAudio';
-import { genStreamingSpeech } from "./streamingSpeech";
+import { SHARED_TRANSCRIPTION_STATE, genStreamingSpeech, sendServerStateMessage } from "./streamingSpeech";
 
 export class WebSocketWithVAD {
     // private vadProcessor = new VAD(VAD.Mode.NORMAL);
     private vadProcessor = new VAD(VAD.Mode.AGGRESSIVE);
     private isUserSpeaking = false;
+    // private startedStreaming = false;
     private audioBuffer: Buffer = Buffer.alloc(0);
 
     private silenceTimeout: NodeJS.Timeout | null = null;
     private readonly silenceThreshold = 2000; // 2 seconds of silence before processing
 
+    private connectionEstablished = false; // Flag to track if the connection message has been sent
     //debouncing start time
     private speechStartThreshold = 7; // Number of consecutive speech detections needed to confirm start
     private consecutiveSpeechDetections = 0; // Counter for consecutive speech detections
@@ -24,6 +26,10 @@ export class WebSocketWithVAD {
 
     private setupWebSocket(): void {
         this.ws.on("message", (message: WebSocket.Data) => {
+            if (!this.connectionEstablished) {
+                sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.CONNECTED);
+                this.connectionEstablished = true; // Set the flag to true after sending the message
+            }
             if (Buffer.isBuffer(message)) {
                 console.log("Received audio chunk");
                 this.processAudioChunk(message);
@@ -42,7 +48,9 @@ export class WebSocketWithVAD {
                         // Confirmed speech start
                         console.log("Confirmed speech start");
                         this.ws.send(JSON.stringify({ key: "message", value: "Confirmed Speech Start" }));
-                        this.ws.send(JSON.stringify({ key: "server_state", value: "listening" }));
+                        // this.ws.send(JSON.stringify({ key: "server_state", value: "listening" }));
+                        // sendServerState(this.ws, "listening");
+                        sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.VOICE_DETECTED);
                         this.isUserSpeaking = true;
                     }
                     this.resetSpeechDetectionTimeout();
@@ -79,7 +87,8 @@ export class WebSocketWithVAD {
             if (this.isUserSpeaking) {
                 this.isUserSpeaking = false;
                 this.ws.send(JSON.stringify({ key: "message", value: "Starting Transcription" }));
-                this.ws.send(JSON.stringify({ key: "server_state", value: "thinking" }));
+                // this.ws.send(JSON.stringify({ key: "server_state", value: "thinking" }));
+                sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.TRANSCRIBING);
                 this.isUserSpeaking = false;
                 this.transcribeAndHandle(this.audioBuffer).catch(console.error);
                 this.audioBuffer = Buffer.alloc(0);

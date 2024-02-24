@@ -4,6 +4,8 @@ import fs from "fs";
 
 export const transcribeAudio = async (audioData: Buffer) => {
     try {
+      
+
         console.log("Transcribing Audio Started");
 
         const openai = new OpenAI({
@@ -14,7 +16,11 @@ export const transcribeAudio = async (audioData: Buffer) => {
         // Prepend the WAV header to the raw PCM data
         const wavData = addWavHeader(audioData);
 
-        const tempFilePath = `./public/uploads/temp-wav-${uniqueIdentifier}.wav`;
+        const tempFilePath = `./public/uploads/user.wav`;
+
+        if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+        }
 
         fs.writeFileSync(tempFilePath, wavData);
 
@@ -29,7 +35,7 @@ export const transcribeAudio = async (audioData: Buffer) => {
         console.log("Websocketed Transcript: ", transcript);
 
         // Clean up the temporary file
-        fs.unlinkSync(tempFilePath); //Remove if you want to listen to audio
+        // fs.unlinkSync(tempFilePath); //Remove if you want to listen to audio
 
         // Implementation goes here
         return transcript.text;

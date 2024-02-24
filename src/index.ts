@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket } from 'ws'
 import { configureExpressRoutes } from './configureExpressRoutes';
 
 import { WebSocketWithVAD } from './websockets/websocketSetup';
+import { SHARED_TRANSCRIPTION_STATE, sendServerStateMessage } from './websockets/streamingSpeech';
 
 if (process.env.NODE_ENV !== "production") {
     require("dotenv").config();
@@ -47,6 +48,8 @@ server.on('upgrade', (request, socket, head) => {
 
 wss.on('connection', (ws: WebSocket, request) => {
     console.log('New WebSocket connection', request.url);
+  
+    // sendServerStateMessage(ws, SHARED_TRANSCRIPTION_STATE.Con);
     new WebSocketWithVAD(ws);
     // ws.on('error', onSocketPostError);
     // ws.on('message', (message, isBinary) => {
