@@ -24,7 +24,7 @@ export const sendServerStateMessage = (ws: WebSocket, value: SHARED_TRANSCRIPTIO
         key: "server_state",
         value
     };
-
+    console.log('Sending Server State Message:', message);
     ws.send(JSON.stringify(message));
 }
 
@@ -71,13 +71,13 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => 
 
         // Stream the audio data back to the WebSocket client
         stream.data.on('data', (chunk) => {
-            console.log('Received a chunk of TTS audio data');
+            // console.log('Received a chunk of TTS audio data');
             if (!startedStreaming) {
                 startedStreaming = true;
                 sendServerStateMessage(ws, SHARED_TRANSCRIPTION_STATE.STREAM_STARTED);
                 console.log('Stream Started');
             }
-            console.log('Sent TTS Chunk');
+            // console.log('Sent TTS Chunk');
             ws.send(chunk);
         });
 

@@ -26,10 +26,6 @@ export class WebSocketWithVAD {
 
     private setupWebSocket(): void {
         this.ws.on("message", (message: WebSocket.Data) => {
-            if (!this.connectionEstablished) {
-                sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.CONNECTED);
-                this.connectionEstablished = true; // Set the flag to true after sending the message
-            }
             if (Buffer.isBuffer(message)) {
                 console.log("Received audio chunk");
                 this.processAudioChunk(message);

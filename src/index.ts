@@ -48,8 +48,7 @@ server.on('upgrade', (request, socket, head) => {
 
 wss.on('connection', (ws: WebSocket, request) => {
     console.log('New WebSocket connection', request.url);
-  
-    // sendServerStateMessage(ws, SHARED_TRANSCRIPTION_STATE.Con);
+    sendServerStateMessage(ws, SHARED_TRANSCRIPTION_STATE.CONNECTED);
     new WebSocketWithVAD(ws);
     // ws.on('error', onSocketPostError);
     // ws.on('message', (message, isBinary) => {

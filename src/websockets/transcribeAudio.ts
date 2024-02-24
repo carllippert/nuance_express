@@ -4,7 +4,7 @@ import fs from "fs";
 
 export const transcribeAudio = async (audioData: Buffer) => {
     try {
-      
+
 
         console.log("Transcribing Audio Started");
 
@@ -32,7 +32,7 @@ export const transcribeAudio = async (audioData: Buffer) => {
             prompt: "What's up? - said Ron"
         });
 
-        console.log("Websocketed Transcript: ", transcript);
+        // console.log("Websocketed Transcript: ", transcript);
 
         // Clean up the temporary file
         // fs.unlinkSync(tempFilePath); //Remove if you want to listen to audio
