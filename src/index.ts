@@ -2,7 +2,8 @@ import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws'
 import { configureExpressRoutes } from './configureExpressRoutes';
 
-import { WebSocketWithVAD } from './websockets/websocketSetup';
+// import { WebSocketWithVAD } from './websockets/vadAudioChunk';
+import { WebSocketWithVAD } from './websockets/vadStream';
 import { SHARED_TRANSCRIPTION_STATE, sendServerStateMessage } from './websockets/streamingSpeech';
 
 if (process.env.NODE_ENV !== "production") {
@@ -50,17 +51,5 @@ wss.on('connection', (ws: WebSocket, request) => {
     console.log('New WebSocket connection', request.url);
     sendServerStateMessage(ws, SHARED_TRANSCRIPTION_STATE.CONNECTED);
     new WebSocketWithVAD(ws);
-    // ws.on('error', onSocketPostError);
-    // ws.on('message', (message, isBinary) => {
-    //     console.log('Received message:', message);
-    //     wss.clients.forEach(client => {
-    //         if (client !== ws && client.readyState === WebSocket.OPEN) {
-    //             client.send(message, { binary: isBinary });
-    //             console.log('Sent message:', message);
-    //         }
-    //     })
-    // })
-    // ws.on('close', () => {
-    //     console.log('Connection Closed');
-    // })
+    ws.on('error', onSocketPostError);
 })
