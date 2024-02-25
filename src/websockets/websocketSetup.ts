@@ -86,15 +86,14 @@ export class WebSocketWithVAD {
                 // this.ws.send(JSON.stringify({ key: "server_state", value: "thinking" }));
                 sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.TRANSCRIBING);
                 this.isUserSpeaking = false;
-                this.transcribeAndHandle(this.audioBuffer).catch(console.error);
+                this.transcribeAndStreamSpeech(this.audioBuffer).catch(console.error);
                 this.audioBuffer = Buffer.alloc(0);
             }
         }, this.silenceThreshold);
     }
 
-    private async transcribeAndHandle(audioData: Buffer): Promise<void> {
+    private async transcribeAndStreamSpeech(audioData: Buffer): Promise<void> {
         try {
-            console.log("Transcribing audio...");
             const transcription: string = await transcribeAudio(audioData); // Implement this based on your transcription service
             console.log("Transcription:", transcription);
             this.ws.send(JSON.stringify({ key: "message", value: transcription }));

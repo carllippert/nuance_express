@@ -4,15 +4,13 @@ import fs from "fs";
 
 export const transcribeAudio = async (audioData: Buffer) => {
     try {
-
-
         console.log("Transcribing Audio Started");
 
         const openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY || "",
         });
 
-        const uniqueIdentifier = Math.floor(Math.random() * 100) + 1;
+        // const uniqueIdentifier = Math.floor(Math.random() * 100) + 1;
         // Prepend the WAV header to the raw PCM data
         const wavData = addWavHeader(audioData);
 
@@ -46,7 +44,7 @@ export const transcribeAudio = async (audioData: Buffer) => {
 }
 
 // Add the WAV header to PCM data
-function addWavHeader(pcmData, sampleRate = 44100, bitsPerSample = 16, channels = 1) {
+function addWavHeader(pcmData, sampleRate = 48000, bitsPerSample = 16, channels = 1) {
     const byteRate = sampleRate * bitsPerSample * channels / 8;
     const blockAlign = bitsPerSample * channels / 8;
     const dataSize = pcmData.length;
