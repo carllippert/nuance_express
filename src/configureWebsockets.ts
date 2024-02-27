@@ -37,8 +37,8 @@ export const configureWebsockets = (server: Server) => {
         const authHeader = request.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
 
-        const current_user_timezone = request.headers["X-Timezone-Name"];
-        const current_seconds_from_gmt = request.headers["X-Timezone-Offset"];
+        const current_user_timezone = request.headers["X-Timezone-Name"][0]
+        const current_seconds_from_gmt = request.headers["X-Timezone-Offset"][0]
 
         if (!current_user_timezone || !current_seconds_from_gmt) {
             console.log("No User Timezone Provided:");

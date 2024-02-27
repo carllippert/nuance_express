@@ -1,4 +1,3 @@
-import { transcription_model } from "../routes/reading/readingRoute";
 import OpenAI from "openai";
 import fs from "fs";
 
