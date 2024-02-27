@@ -43,7 +43,7 @@ export const configureWebsockets = (server: Server) => {
     })
 
     wss.on('connection', (ws: WebSocket, request) => {
-
+        console.log("request: ", request);
         const authHeader = request.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
 
@@ -54,7 +54,7 @@ export const configureWebsockets = (server: Server) => {
 
             console.log('User:', user);
 
-            if(!user){
+            if (!user) {
                 console.log("JWT Verification failed with error:", err);
 
                 //Not Authorized
@@ -63,7 +63,7 @@ export const configureWebsockets = (server: Server) => {
                 ws.close(1008, 'Unauthorized'); // You can send a string reason along with the close code
                 return;
             }
-            
+
             let id = user.sub.toString();
             //some systems are case sensitive so we just uppercase everywhere
             const user_id = id.toUpperCase();
