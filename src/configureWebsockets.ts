@@ -47,15 +47,31 @@ export const configureWebsockets = (server: Server) => {
         const authHeader = request.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
 
+        console.log("Token:", token);
+        console.log("authHeader:", authHeader);
+
         jwt.verify(token, SUPABASE_JWT_SECRET, (err, user) => {
+
             console.log('User:', user);
-            console.log("JWT Verified");
+
+            if(!user){
+                console.log("JWT Verification failed with error:", err);
+
+                //Not Authorized
+                ws.send(JSON.stringify({ key: "error", value: "401" }));
+                // Use the 1008 close code for policy violation or a custom code for unauthorized access
+                ws.close(1008, 'Unauthorized'); // You can send a string reason along with the close code
+                return;
+            }
+            
             let id = user.sub.toString();
             //some systems are case sensitive so we just uppercase everywhere
             const user_id = id.toUpperCase();
 
 
             if (err) {
+                console.log("JWT Verification failed with error:", err);
+
                 //Not Authorized
                 ws.send(JSON.stringify({ key: "error", value: "401" }));
                 // Use the 1008 close code for policy violation or a custom code for unauthorized access

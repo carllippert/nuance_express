@@ -12,8 +12,6 @@ let SPEECH_END_THRESHOLD = 10 // Number of consecutive speech detections needed 
 const HEARTBEAT_INTERVAL = 1000 * 5; // 5 seconds
 const HEARTBEAT_VALUE = new Uint8Array([0]);
 
-
-
 function ping(ws) {
     // Create a buffer with a single byte of value 0
     console.log("ping");
@@ -60,9 +58,6 @@ export class WebSocketWithVAD {
                     this.processAudioChunk(message);
                 }
             }
-            // if (Buffer.isBuffer(message)) {
-            //     this.processAudioChunk(message);
-            // }
         });
     }
 
@@ -76,10 +71,7 @@ export class WebSocketWithVAD {
                 this.ws.send(JSON.stringify({ key: "error", value: "4000" }));
                 // We use code 4000 thouse but currently app reads it from above send not from actual close frame
                 this.ws.close(4000, 'Connection was closed abnormally');
-
-                // return;
                 /// 4000 is an open code https://www.rfc-editor.org/rfc/rfc6455.html#section-7.4.2
-                // this.ws.terminate();
                 return;
             }
             //set to false everyt time
@@ -185,7 +177,7 @@ export class WebSocketWithVAD {
         try {
             const transcription: string = await transcribeAudio(audioData); // Implement this based on your transcription service
             console.log("Transcription:", transcription);
-            this.ws.send(JSON.stringify({ key: "message", value: transcription }));
+            this.ws.send(JSON.stringify({ key: "transcription", value: transcription }));
 
             genStreamingSpeech(transcription, this.ws);
 
