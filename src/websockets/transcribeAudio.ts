@@ -2,6 +2,8 @@ import { transciption_model } from "../routes/reading/readingRoute";
 import OpenAI from "openai";
 import fs from "fs";
 
+import { CLIENT_SENT_SAMPLE_RATE } from "../websockets/scoringVad";
+
 export const transcribeAudio = async (audioData: Buffer) => {
     try {
         console.log("Transcribing Audio Started");
@@ -10,7 +12,6 @@ export const transcribeAudio = async (audioData: Buffer) => {
             apiKey: process.env.OPENAI_API_KEY || "",
         });
 
-        // const uniqueIdentifier = Math.floor(Math.random() * 100) + 1;
         // Prepend the WAV header to the raw PCM data
         const wavData = addWavHeader(audioData);
 
@@ -25,8 +26,9 @@ export const transcribeAudio = async (audioData: Buffer) => {
         const transcript = await openai.audio.transcriptions.create({
             file: fs.createReadStream(tempFilePath),
             model: transciption_model,
-            language: "en",
+            // language: "es",
             // prompt: "¿Qué pasa? - dijo Ron"
+            language: "en",
             prompt: "What's up? - said Ron"
         });
 
@@ -44,7 +46,7 @@ export const transcribeAudio = async (audioData: Buffer) => {
 }
 
 // Add the WAV header to PCM data
-function addWavHeader(pcmData, sampleRate = 48000, bitsPerSample = 16, channels = 1) {
+function addWavHeader(pcmData, sampleRate = CLIENT_SENT_SAMPLE_RATE, bitsPerSample = 16, channels = 1) {
     const byteRate = sampleRate * bitsPerSample * channels / 8;
     const blockAlign = bitsPerSample * channels / 8;
     const dataSize = pcmData.length;

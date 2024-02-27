@@ -1,13 +1,13 @@
 import { WebSocket } from "ws";
 import fs from 'fs';
-import axios from 'axios';
 
-const ffmpegStatic = require('ffmpeg-static');
-const ffmpeg = require('fluent-ffmpeg');
 
 import OpenAI from "openai";
 // import { WebSocket } from "ws";
 import { Readable } from 'stream';
+const ffmpegStatic = require('ffmpeg-static');
+const ffmpeg = require('fluent-ffmpeg');
+
 // Tell fluent - ffmpeg where it can find FFmpeg
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
@@ -19,7 +19,8 @@ export enum SHARED_TRANSCRIPTION_STATE {
     VOICE_DETECTION_FINISHED = "voice_detection_finished",
     TRANSCRIBING = "transcribing",
     STREAM_STARTED = "stream_started",
-    STREAM_FINISHED = "stream_finished"
+    STREAM_FINISHED = "stream_finished",
+    AUTO_PAUSE = "auto_pause"
 }
 
 type SERVER_STATE_MESSAGE = {
@@ -98,7 +99,7 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => 
                 if (ws.readyState === WebSocket.OPEN) {
                     ws.send(chunk);
                 }
-                console.log('Sent a chunk of PCM audio data to the WebSocket client');
+                console.log('Sent a chunk speech to client');
                 // Also write the same chunk to the file
                 pcmFileWriteStream.write(chunk);
             });

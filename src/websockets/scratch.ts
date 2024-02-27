@@ -167,3 +167,37 @@
         // response.data.pipe(res);
 
         // const stream = response.body as unknown as Readable;
+
+
+
+        // function applyHighpassFilter(audioData: Buffer, cutoffFrequency: number, sampleRate: number): Buffer {
+//     console.log("Applying highpass filter");
+//     const nyquist = 0.5 * sampleRate;
+//     const order = 4; // Filter order (adjust as needed)
+
+//     const filteredData = Buffer.alloc(audioData.length); // Create a new buffer to store the filtered data
+
+//     // Calculate coefficients
+//     const c = 1.0 / Math.tan(Math.PI * cutoffFrequency / nyquist);
+//     const a1 = 1.0 / (1.0 + Math.sqrt(2.0) * c + Math.pow(c, 2));
+//     const a2 = -2 * a1;
+//     const a3 = a1;
+//     const b1 = 2.0 * (Math.pow(c, 2) - 1.0) * a1;
+//     const b2 = (1.0 - Math.sqrt(2.0) * c + Math.pow(c, 2)) * a1;
+
+//     // Initialize filter buffers
+//     let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+
+//     // Apply filter
+//     for (let i = 0; i < audioData.length; i += 2) { // Assuming 16-bit audio (2 bytes per sample)
+//         const sample = audioData.readInt16LE(i);
+//         const filteredSample = a1 * sample + a2 * x1 + a3 * x2 - b1 * y1 - b2 * y2;
+//         x2 = x1;
+//         x1 = sample;
+//         y2 = y1;
+//         y1 = filteredSample;
+//         filteredData.writeInt16LE(filteredSample, i);
+//     }
+
+//     return filteredData;
+// }
