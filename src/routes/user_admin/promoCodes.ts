@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
-import * as middleware from "../utils/middleware";
+import * as middleware from "../../utils/middleware";
 
 const routes = Router();
 
@@ -140,7 +140,7 @@ routes.post("/", middleware.authenticateToken, //JWT management
             const { data: updatedData, error: updateError } = await supabase
                 .from("promo_codes")
                 .update({
-                    used: true, 
+                    used: true,
                     used_at: new Date().toISOString(),
                     used_by_user_id: supabase_user_id,
                     promo_ends_at: new Date(new Date().getTime() + 31 * 24 * 60 * 60 * 1000).toDateString()

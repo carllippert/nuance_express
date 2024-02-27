@@ -5,10 +5,10 @@ import OpenAI from "openai";
 import fs from "fs";
 import { PostHog } from 'posthog-node'
 
-import * as middleware from "../utils/middleware";
+import * as middleware from "../../utils/middleware";
 import {
   categorizeUserInput,
-} from "../categorize/scoring";
+} from "../../categorize/scoring";
 
 const routes = Router();
 
@@ -31,7 +31,7 @@ type SupabaseMessage = {
 import { createClient } from "@supabase/supabase-js";
 
 //statics
-let transciption_model = "whisper-1";
+export let transciption_model = "whisper-1";
 let text_to_speech_model = "tts-1";
 let llm_model = "gpt-3.5-turbo";
 
@@ -153,8 +153,6 @@ routes.post(
         llm_end_time
       } = await fetchCompletion(prompt, user_message);
 
-
-
       //Delete file
       fs.unlinkSync(req.file.path);
 
@@ -180,10 +178,10 @@ routes.post(
         audio: buffer,
         user_id: supabase_user_id,
         message_input_classification: is_question ? "question" : "reading",
-        user_message, 
+        user_message,
         completion_text,
       };
-      
+
       message_end_time = new Date();
       message_time_duration = message_end_time.getTime() - message_start_time.getTime();
       res.status(200).send(response);

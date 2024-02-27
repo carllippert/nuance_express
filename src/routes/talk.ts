@@ -1,22 +1,11 @@
-
 import { Router } from "express";
 import axios from "axios";
-
-import multer from "multer";
-import OpenAI from "openai";
-import fs from "fs";
-import { PostHog } from 'posthog-node'
-
-import * as middleware from "../utils/middleware";
-import {
-    categorizeUserInput,
-} from "../categorize/scoring";
 
 const routes = Router();
 
 routes.get('/:secret/:text', async (req, res) => {
     try {
-        // const { text } = req.body;
+    
         const { text, secret } = req.params;
 
         if (!text) {

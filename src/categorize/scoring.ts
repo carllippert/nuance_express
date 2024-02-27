@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import { Language } from "node-nlp";
 
-// import { CURRENT_CAT_PROMPT } from "./prompts/categorizerPrompt";
 import { detect, detectAll } from "tinyld";
 
 export type TinyLDLanguageResponse = {

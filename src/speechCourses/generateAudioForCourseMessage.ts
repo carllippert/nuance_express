@@ -1,4 +1,4 @@
-import { tts_model, text_api_provider, audio_api_provider } from "./config";
+import { tts_model, text_api_provider, audio_api_provider } from "../utils/config";
 import { convertTextToSpeech } from "./tts";
 import { createClient } from "@supabase/supabase-js";
 import { updateCourseStatusIfReady } from "./updateCourseStatus";
