@@ -21,7 +21,6 @@ function ping(ws) {
 export class WebSocketWithVAD {
 
     private isAlive = true;
-
     private vadProcessor = new VAD(VAD_MODE);
 
     ///for scoring teh user start and stop of speech
