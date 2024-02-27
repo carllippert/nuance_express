@@ -12,6 +12,8 @@ let SPEECH_END_THRESHOLD = 10 // Number of consecutive speech detections needed 
 const HEARTBEAT_INTERVAL = 1000 * 5; // 5 seconds
 const HEARTBEAT_VALUE = new Uint8Array([0]);
 
+
+
 function ping(ws) {
     // Create a buffer with a single byte of value 0
     console.log("ping");
