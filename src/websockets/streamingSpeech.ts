@@ -5,6 +5,7 @@ import fs from 'fs';
 import OpenAI from "openai";
 // import { WebSocket } from "ws";
 import { Readable } from 'stream';
+import { text_to_speech_model } from "./scoringVad";
 const ffmpegStatic = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 
@@ -49,7 +50,7 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => 
         });
 
         const response = await openai.audio.speech.create({
-            model: 'tts-1',
+            model: text_to_speech_model,
             voice: 'alloy',
             input: speech_text,
             response_format: open_ai_audio_format

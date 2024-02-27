@@ -1,4 +1,3 @@
-
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 
@@ -18,8 +17,6 @@ function onSocketPostError(err: Error) {
     console.error('WebSocket error:', err);
 }
 
-
-
 export const configureWebsockets = (server: Server) => {
 
     const wss = new WebSocketServer({ noServer: true })
@@ -28,13 +25,6 @@ export const configureWebsockets = (server: Server) => {
     //minute 8 https://www.youtube.com/watch?v=Gq7fenbjehs
     server.on('upgrade', (request, socket, head) => {
         socket.on('error', onSocketPreError);
-        //perform auth here
-        // let authFailed = false; //TODO: 
-        // if (authFailed) {
-        //     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-        //     socket.destroy();
-        //     return;
-        // }
 
         wss.handleUpgrade(request, socket, head, (ws) => {
             socket.removeListener('error', onSocketPreError);
@@ -47,12 +37,26 @@ export const configureWebsockets = (server: Server) => {
         const authHeader = request.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
 
+        const current_user_timezone = request.headers["X-Timezone-Name"];
+        const current_seconds_from_gmt = request.headers["X-Timezone-Offset"];
+
+        if (!current_user_timezone || !current_seconds_from_gmt) {
+            console.log("No User Timezone Provided:");
+
+            //Not Authorized
+            ws.send(JSON.stringify({ key: "error", value: "401" }));
+            // Use the 1008 close code for policy violation or a custom code for unauthorized access
+            ws.close(1008, 'Unauthorized'); // You can send a string reason along with the close code
+            return;
+        }
+
         console.log("Token:", token);
         console.log("authHeader:", authHeader);
 
         jwt.verify(token, SUPABASE_JWT_SECRET, (err, user) => {
 
             console.log('User:', user);
+
 
             if (!user) {
                 console.log("JWT Verification failed with error:", err);
@@ -81,7 +85,7 @@ export const configureWebsockets = (server: Server) => {
                 console.log("JWT Verified");
                 console.log('New WebSocket connection', request.url);
                 sendServerStateMessage(ws, SHARED_TRANSCRIPTION_STATE.CONNECTED);
-                new WebSocketWithVAD(ws, user_id);
+                new WebSocketWithVAD(ws, user_id, current_user_timezone, current_seconds_from_gmt);
                 Sentry.setUser({ id: user_id });
             }
         });

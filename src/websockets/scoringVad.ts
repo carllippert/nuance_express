@@ -2,6 +2,15 @@ import WebSocket from "ws";
 const VAD = require('node-vad');
 import { transcribeAudio } from './transcribeAudio';
 import { SHARED_TRANSCRIPTION_STATE, genStreamingSpeech, sendServerStateMessage } from "./streamingSpeech";
+import { fetchCompletion } from "./translateAudio";
+
+import { PostHog } from "posthog-node";
+
+import {
+    categorizeUserInput,
+} from "../categorize/scoring";
+
+import { createClient } from "@supabase/supabase-js";
 
 ///Adjustments
 let VAD_MODE = VAD.Mode.NORMAL
@@ -12,6 +21,10 @@ let SPEECH_END_THRESHOLD = 10 // Number of consecutive speech detections needed 
 const HEARTBEAT_INTERVAL = 1000 * 5; // 5 seconds
 const HEARTBEAT_VALUE = new Uint8Array([0]);
 
+export const transcription_model = "whisper-1"
+export const text_to_speech_model = 'tts-1'
+export const llm_model = "gpt-3.5-turbo"
+
 function ping(ws) {
     // Create a buffer with a single byte of value 0
     console.log("ping");
@@ -21,6 +34,10 @@ function ping(ws) {
 export class WebSocketWithVAD {
 
     private isAlive = true;
+    // private user_id: string;
+    // private current_seconds_from_gmt: string;
+    // private current_user_timezone: string;
+
     private vadProcessor = new VAD(VAD_MODE);
 
     ///for scoring teh user start and stop of speech
@@ -40,9 +57,15 @@ export class WebSocketWithVAD {
 
     private audioBuffer: Buffer = Buffer.alloc(0);
 
-    constructor(private ws: WebSocket, user_id: string) {
+    constructor(
+        private ws: WebSocket,
+        private user_id: string,
+        private current_user_timezone: string,
+        private current_seconds_from_gmt: string
+    ) {
         this.setupWebSocket();
         this.setupHeartbeat();
+
     }
 
     private setupWebSocket(): void {
@@ -122,7 +145,6 @@ export class WebSocketWithVAD {
         this.firstChunkTime = null;
     }
 
-
     private async processAudioChunk(audioChunk: Buffer): Promise<void> {
         console.log("Received audio chunk");
         this.ws.send(JSON.stringify({ key: "message", value: "Processing Audio Chunk" }));
@@ -160,7 +182,7 @@ export class WebSocketWithVAD {
                         this.ws.send(JSON.stringify({ key: "message", value: "Starting Transcription" }));
                         sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.TRANSCRIBING);
                         //transcribe and stream speech
-                        this.transcribeAndStreamSpeech(this.audioBuffer).catch(console.error);
+                        this.transcribeAndStreamSpeech(this.audioBuffer, this.user_id).catch(console.error);
                         this.resetVadState();
                     }
                     break;
@@ -173,13 +195,94 @@ export class WebSocketWithVAD {
         }).catch(console.error);
     }
 
-    private async transcribeAndStreamSpeech(audioData: Buffer): Promise<void> {
+    private async transcribeAndStreamSpeech(audioData: Buffer, user_id: string): Promise<void> {
         try {
-            const transcription: string = await transcribeAudio(audioData); // Implement this based on your transcription service
-            console.log("Transcription:", transcription);
-            this.ws.send(JSON.stringify({ key: "transcription", value: transcription }));
 
-            genStreamingSpeech(transcription, this.ws);
+            const spanish_transcript: string = await transcribeAudio(audioData);
+
+            const english_transcript: string = await fetchCompletion(spanish_transcript)
+
+            console.log("Transcription:", spanish_transcript);
+
+            this.ws.send(JSON.stringify({
+                key: "transcription",
+                value: english_transcript,
+                key2: "es",
+                value2: spanish_transcript
+            }));
+
+            genStreamingSpeech(english_transcript, this.ws);
+
+            try {
+                //save to DB and analytics 
+                //is it english or spanish?
+                let user_input_machine_scoring = await categorizeUserInput(spanish_transcript);
+
+                //langauge detection on our output
+                let application_response_machine_scoring = await categorizeUserInput(
+                    english_transcript,
+                );
+
+                // Create a single supabase client
+                const supabase = createClient(
+                    process.env.SUPABASE_URL || "",
+                    process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+                );
+
+                //persist to supabase
+                const { data: insertData, error: insertError } = await supabase
+                    .from("messages")
+                    .insert([
+                        {
+                            message_input_classification: "reading",
+                            message_input_classifier: "none",
+                            user_id,
+                            response_message_text: english_transcript,
+                            transcription_response_text: spanish_transcript,
+                            // completion_tokens,
+                            // total_completion_tokens,
+                            // completion_attempts,
+                            // all_completion_responses,
+                            current_seconds_from_gmt: this.current_seconds_from_gmt,
+                            current_user_timezone: this.current_user_timezone,
+                            user_input_machine_scoring,
+                            application_response_machine_scoring,
+                            // speed_data,
+                        },
+                    ])
+                    .select();
+
+
+                if (insertError) {
+                    console.error("error in message persistance:", JSON.stringify(insertError));
+                }
+
+
+            } catch (error: any) {
+                console.log("error in message persistance:", JSON.stringify(error));
+            }
+
+            try {
+                const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
+
+                posthog.capture({
+                    distinctId: user_id.toUpperCase(),
+                    event: "message_received",
+                    properties: {
+                        message_input_classification: "reading",
+                        message_input_classifier: "none",  //in future maybe it can be automatic  with AI
+                        transcription_model,
+                        text_to_speech_model,
+                        llm_model,
+                        // total_completion_tokens,
+                        //timing data
+                        // ...speed_data,
+                    },
+                });
+
+            } catch (error: any) {
+                console.log("error in posthog event capture:", JSON.stringify(error));
+            }
 
         } catch (error) {
             console.error("Error transcribing audio:", error);

@@ -1,8 +1,8 @@
-import { transciption_model } from "../routes/reading/readingRoute";
+import { transcription_model } from "../routes/reading/readingRoute";
 import OpenAI from "openai";
 import fs from "fs";
 
-import { CLIENT_SENT_SAMPLE_RATE } from "../websockets/scoringVad";
+import { CLIENT_SENT_SAMPLE_RATE, transcription_model } from "../websockets/scoringVad";
 
 export const transcribeAudio = async (audioData: Buffer) => {
     try {
@@ -25,17 +25,13 @@ export const transcribeAudio = async (audioData: Buffer) => {
 
         const transcript = await openai.audio.transcriptions.create({
             file: fs.createReadStream(tempFilePath),
-            model: transciption_model,
-            // language: "es",
-            // prompt: "¿Qué pasa? - dijo Ron"
-            language: "en",
-            prompt: "What's up? - said Ron"
+            model: transcription_model,
+            language: "es",
+            prompt: "¿Qué pasa? - dijo Ron"
         });
 
-        // console.log("Websocketed Transcript: ", transcript);
-
         // Clean up the temporary file
-        // fs.unlinkSync(tempFilePath); //Remove if you want to listen to audio
+        fs.unlinkSync(tempFilePath); //Remove if you want to listen to audio
 
         // Implementation goes here
         return transcript.text;

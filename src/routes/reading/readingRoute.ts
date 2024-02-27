@@ -31,7 +31,7 @@ type SupabaseMessage = {
 import { createClient } from "@supabase/supabase-js";
 
 //statics
-export let transciption_model = "whisper-1";
+export let transcription_model = "whisper-1";
 let text_to_speech_model = "tts-1";
 let llm_model = "gpt-3.5-turbo";
 
@@ -99,7 +99,7 @@ routes.post(
         const trnascription_start_time = new Date();
         const transcript = await openai.audio.transcriptions.create({
           file: fs.createReadStream(req.file.path),
-          model: transciption_model,
+          model: transcription_model,
           language: "en",
           prompt: `What does "quirro" mean in spanish?`
         });
@@ -125,7 +125,7 @@ routes.post(
         transcription_start_time = new Date();
         const transcript = await openai.audio.transcriptions.create({
           file: fs.createReadStream(req.file.path),
-          model: transciption_model,
+          model: transcription_model,
           language: "es",
           prompt: "¿Qué pasa? - dijo Ron"
         });
@@ -247,7 +247,7 @@ routes.post(
           properties: {
             message_input_classification: is_question ? "question" : "reading",
             message_input_classifier: "in_app_button",  //in future maybe it can be automatic  with AI
-            transciption_model,
+            transcription_model,
             text_to_speech_model,
             llm_model,
             total_completion_tokens,
