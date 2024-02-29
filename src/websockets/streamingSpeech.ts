@@ -1,15 +1,13 @@
 import { WebSocket } from "ws";
 import fs from 'fs';
 
-
 import OpenAI from "openai";
-// import { WebSocket } from "ws";
+
 import { Readable } from 'stream';
 import { text_to_speech_model } from "./scoringVad";
 const ffmpegStatic = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 
-// Tell fluent - ffmpeg where it can find FFmpeg
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const open_ai_audio_format = 'aac';

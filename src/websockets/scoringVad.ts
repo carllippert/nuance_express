@@ -15,10 +15,11 @@ import { applyHighPassFilter } from "./noiseSuppression";
 
 ///Adjustments
 let VAD_MODE = VAD.Mode.NORMAL
-export let CLIENT_SENT_SAMPLE_RATE = 48000
-let SPEECH_START_THRESHOLD = 10 // Number of consecutive speech detections needed to confirm start
-let SPEECH_END_THRESHOLD = 10 // Number of consecutive speech detections needed to confirm end
+export const CLIENT_SENT_SAMPLE_RATE = 48000
+const SPEECH_START_THRESHOLD = 10 // Number of consecutive speech detections needed to confirm start
+const SPEECH_END_THRESHOLD = 10 // Number of consecutive speech detections needed to confirm end
 
+const AUTO_PAUSE_THRESHOLD = 20000 // 20 seconds
 const HEARTBEAT_INTERVAL = 1000 * 5; // 5 seconds
 const HEARTBEAT_VALUE = new Uint8Array([0]);
 
@@ -35,9 +36,6 @@ function ping(ws) {
 export class WebSocketWithVAD {
 
     private isAlive = true;
-    // private user_id: string;
-    // private current_seconds_from_gmt: string;
-    // private current_user_timezone: string;
 
     private vadProcessor = new VAD(VAD_MODE);
 
@@ -45,16 +43,13 @@ export class WebSocketWithVAD {
     private notVoiceScore = 0; // Score to track silence occurrences
     private voiceScore = 0; // Score to track voice occurrences
 
-    //only for scoring if the user has started speaking at all ( auto pause system )
-    private neverSpokeScore = 0;
-
     //flag for if we have decided the user is speaking
     private isUserSpeaking = false;
 
     //will use for auto pause system
     private firstChunkTime: Date = null;
 
-    private lastSCoreTime = Date.now();
+    private lastScoreTime: number = null;
 
     private audioBuffer: Buffer = Buffer.alloc(0);
 
@@ -114,28 +109,34 @@ export class WebSocketWithVAD {
         this.notVoiceScore = Math.max(this.notVoiceScore - 1, 0);
         console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
         console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
-        console.log("Duration since last score time: " + (Date.now() - this.lastSCoreTime) + "ms");
-        this.lastSCoreTime = Date.now();
+        console.log("Duration since last score time: " + (Date.now() - this.lastScoreTime) + "ms");
+        this.lastScoreTime = Date.now();
     }
 
-    //
+    //change this so that we just zero out silence score when we start speaking
+    //removing teh flag for isUserSpeaking because it means we get "isUserSpeaking" just by accumulating random 
+    //wins from voice being detected
     private addNotVoiceScore = () => {
         //only add to this score if user has started speeaking
         //this score is for determinging when the stop talking and nothing else
-        if (this.isUserSpeaking) {
-            this.notVoiceScore = Math.max(this.notVoiceScore + 1, 0);
-            this.voiceScore = Math.max(this.voiceScore - 1, 0);
-            console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
-            console.log("Duration since last score time: " + (Date.now() - this.lastSCoreTime) + "ms");
-            this.lastSCoreTime = Date.now();
-        } else {
-            //only for scoring if the user never started speaking at all. will use for auto pause system
-            this.neverSpokeScore += 1;
-            if (this.firstChunkTime && (Date.now() - this.firstChunkTime.getTime()) > 20000) {
-                console.log("More than 20 seconds have passed since the first audio chunk was received");
-                sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.AUTO_PAUSE);
-            }
+        // if (this.isUserSpeaking) {
+        this.notVoiceScore = Math.max(this.notVoiceScore + 1, 0);
+        this.voiceScore = Math.max(this.voiceScore - 1, 0);
+        console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
+        console.log("Duration since last score time: " + (Date.now() - this.lastScoreTime) + "ms");
+        this.lastScoreTime = Date.now();
+        // } else {
+
+        if (this.firstChunkTime && (Date.now() - this.firstChunkTime.getTime()) > AUTO_PAUSE_THRESHOLD) {
+            console.log("More than 20 seconds have passed since the first audio chunk was received");
+            sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.AUTO_PAUSE);
         }
+        // }
+    }
+
+    private resetVoiceScores = () => {
+        this.notVoiceScore = 0;
+        this.voiceScore = 0;
     }
 
     private resetVadState = () => {
@@ -144,10 +145,17 @@ export class WebSocketWithVAD {
         this.isUserSpeaking = false;
         this.audioBuffer = Buffer.alloc(0);
         this.firstChunkTime = null;
+        this.lastScoreTime = null;
     }
 
     private async processAudioChunk(audioChunk: Buffer): Promise<void> {
         console.log("Received audio chunk");
+
+        if (this.lastScoreTime == null) {
+            //init last score time ( we don't even use this but maybe we should?)
+            this.lastScoreTime = Date.now();
+        }
+
         this.ws.send(JSON.stringify({ key: "message", value: "Processing Audio Chunk" }));
         if (this.firstChunkTime == null) {
             this.firstChunkTime = new Date();
@@ -169,6 +177,8 @@ export class WebSocketWithVAD {
                         this.ws.send(JSON.stringify({ key: "message", value: "Confirmed Speech Start" }));
                         sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.VOICE_DETECTED);
                         this.isUserSpeaking = true;
+                        //set counters back to zero when we notice user is speaking
+                        this.resetVoiceScores();
                     }
                     this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
                     break;
@@ -204,88 +214,113 @@ export class WebSocketWithVAD {
 
             const spanish_transcript: string = await transcribeAudio(audioData);
 
-            const english_transcript: string = await fetchCompletion(spanish_transcript)
+            if (spanish_transcript === "" || spanish_transcript === null || spanish_transcript === undefined) {
+                //TODO: we don't want to save this to the DB
+                //We do not want to translate it. 
+                //We should just send the user a sorry message
+                let user_message = "Oops. Sorry. We got confused by some noise. Just keep reading and avoid noisy areas if possible."
 
-            console.log("Transcription:", spanish_transcript);
+                genStreamingSpeech(user_message, this.ws);
+                //"Oops sorry about that. Keep reading and we will try to transcribe again."
+                try {
+                    const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
 
-            this.ws.send(JSON.stringify({
-                key: "transcription",
-                value: english_transcript,
-                key2: "es",
-                value2: spanish_transcript
-            }));
-
-            genStreamingSpeech(english_transcript, this.ws);
-
-            try {
-                //save to DB and analytics 
-                //is it english or spanish?
-                let user_input_machine_scoring = await categorizeUserInput(spanish_transcript);
-
-                //langauge detection on our output
-                let application_response_machine_scoring = await categorizeUserInput(
-                    english_transcript,
-                );
-
-                // Create a single supabase client
-                const supabase = createClient(
-                    process.env.SUPABASE_URL || "",
-                    process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-                );
-
-                //persist to supabase
-                const { data: insertData, error: insertError } = await supabase
-                    .from("messages")
-                    .insert([
-                        {
+                    posthog.capture({
+                        distinctId: user_id.toUpperCase(),
+                        event: "empty_transcription",
+                        properties: {
                             message_input_classification: "reading",
-                            message_input_classifier: "none",
-                            user_id,
-                            response_message_text: english_transcript,
-                            transcription_response_text: spanish_transcript,
-                            // completion_tokens,
-                            // total_completion_tokens,
-                            // completion_attempts,
-                            // all_completion_responses,
-                            current_seconds_from_gmt: Number(this.current_seconds_from_gmt),
-                            current_user_timezone: this.current_user_timezone,
-                            user_input_machine_scoring,
-                            application_response_machine_scoring,
-                            // speed_data,
+                            message_input_classifier: "none",  //in future maybe it can be automatic  with AI
+                            transcription_model,
                         },
-                    ])
-                    .select();
+                    });
 
-
-                if (insertError) {
-                    console.error("error in message persistance:", JSON.stringify(insertError));
+                } catch (error: any) {
+                    console.log("error in posthog event capture:", JSON.stringify(error));
                 }
 
+            } else {
 
-            } catch (error: any) {
-                console.log("error in message persistance:", JSON.stringify(error));
-            }
+                const english_transcript: string = await fetchCompletion(spanish_transcript)
+                console.log("Transcription:", spanish_transcript);
 
-            try {
-                const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
+                this.ws.send(JSON.stringify({
+                    key: "transcription",
+                    value: english_transcript,
+                    key2: "es",
+                    value2: spanish_transcript
+                }));
 
-                posthog.capture({
-                    distinctId: user_id.toUpperCase(),
-                    event: "message_received",
-                    properties: {
-                        message_input_classification: "reading",
-                        message_input_classifier: "none",  //in future maybe it can be automatic  with AI
-                        transcription_model,
-                        text_to_speech_model,
-                        llm_model,
-                        // total_completion_tokens,
-                        //timing data
-                        // ...speed_data,
-                    },
-                });
+                genStreamingSpeech(english_transcript, this.ws);
 
-            } catch (error: any) {
-                console.log("error in posthog event capture:", JSON.stringify(error));
+                try {
+                    //save to DB and analytics 
+                    //is it english or spanish?
+                    let user_input_machine_scoring = await categorizeUserInput(spanish_transcript);
+
+                    //langauge detection on our output
+                    let application_response_machine_scoring = await categorizeUserInput(
+                        english_transcript,
+                    );
+
+                    // Create a single supabase client
+                    const supabase = createClient(
+                        process.env.SUPABASE_URL || "",
+                        process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+                    );
+
+                    //persist to supabase
+                    const { data: insertData, error: insertError } = await supabase
+                        .from("messages")
+                        .insert([
+                            {
+                                message_input_classification: "reading",
+                                message_input_classifier: "none",
+                                user_id,
+                                response_message_text: english_transcript,
+                                transcription_response_text: spanish_transcript,
+                                // completion_tokens,
+                                // total_completion_tokens,
+                                // completion_attempts,
+                                // all_completion_responses,
+                                current_seconds_from_gmt: Number(this.current_seconds_from_gmt),
+                                current_user_timezone: this.current_user_timezone,
+                                user_input_machine_scoring,
+                                application_response_machine_scoring,
+                                // speed_data,
+                            },
+                        ])
+                        .select();
+
+                    if (insertError) {
+                        console.error("error in message persistance:", JSON.stringify(insertError));
+                    }
+
+                } catch (error: any) {
+                    console.log("error in message persistance:", JSON.stringify(error));
+                }
+
+                try {
+                    const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
+
+                    posthog.capture({
+                        distinctId: user_id.toUpperCase(),
+                        event: "message_received",
+                        properties: {
+                            message_input_classification: "reading",
+                            message_input_classifier: "none",  //in future maybe it can be automatic  with AI
+                            transcription_model,
+                            text_to_speech_model,
+                            llm_model,
+                            // total_completion_tokens,
+                            //timing data
+                            // ...speed_data,
+                        },
+                    });
+
+                } catch (error: any) {
+                    console.log("error in posthog event capture:", JSON.stringify(error));
+                }
             }
 
         } catch (error) {
