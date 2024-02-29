@@ -36,7 +36,7 @@ export const configureWebsockets = (server: Server) => {
         // console.log("request: ", request);
         const authHeader = request.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
-        
+
         const current_user_timezone = request.headers["x-timezone-name"];
         const current_seconds_from_gmt = request.headers["x-timezone-offset"];
 

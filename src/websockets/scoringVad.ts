@@ -118,6 +118,7 @@ export class WebSocketWithVAD {
         this.lastSCoreTime = Date.now();
     }
 
+    //
     private addNotVoiceScore = () => {
         //only add to this score if user has started speeaking
         //this score is for determinging when the stop talking and nothing else
@@ -153,13 +154,9 @@ export class WebSocketWithVAD {
             console.log("Settig First Chunk Time:", this.firstChunkTime);
         }
 
+        //Noise cancelling for things like airconditioning nad machine humming
         let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 100);
 
-        // console.log("Noise Suppression Done: " + noiseSupppressedAudio)
-        //TODO: add audio processing here
-        //ffmpeg INPUT -af lowpass=3000,highpass=200
-        // let new_audio = applyHighpassFilter(audioChunk, 2, CLIENT_SENT_SAMPLE_RATE);
-        // console.log("Now Vad can process the audio chunk");
         this.vadProcessor.processAudio(noiseSupppressedAudio, CLIENT_SENT_SAMPLE_RATE).then((res: any) => {
             switch (res) {
                 case VAD.Event.VOICE:
