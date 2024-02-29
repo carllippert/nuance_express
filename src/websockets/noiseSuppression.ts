@@ -27,7 +27,7 @@ export const applyHighPassFilter = async (audioChunk: Buffer, cutoffFrequency: n
                 reject(err);
             })
             .on('end', function () {
-                console.log('High-pass filter applied');
+                // console.log('High-pass filter applied');
                 resolve(outputBuffer); // Resolve with the full output buffer
             })
             .pipe(new Writable({

@@ -66,7 +66,6 @@ export class WebSocketWithVAD {
     ) {
         this.setupWebSocket();
         this.setupHeartbeat();
-
     }
 
     private setupWebSocket(): void {
@@ -156,11 +155,11 @@ export class WebSocketWithVAD {
 
         let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 100);
 
-        console.log("Noise Suppression Done: " + noiseSupppressedAudio)
+        // console.log("Noise Suppression Done: " + noiseSupppressedAudio)
         //TODO: add audio processing here
         //ffmpeg INPUT -af lowpass=3000,highpass=200
         // let new_audio = applyHighpassFilter(audioChunk, 2, CLIENT_SENT_SAMPLE_RATE);
-        console.log("Now Vad can process the audio chunk");
+        // console.log("Now Vad can process the audio chunk");
         this.vadProcessor.processAudio(noiseSupppressedAudio, CLIENT_SENT_SAMPLE_RATE).then((res: any) => {
             switch (res) {
                 case VAD.Event.VOICE:
@@ -251,7 +250,7 @@ export class WebSocketWithVAD {
                             // total_completion_tokens,
                             // completion_attempts,
                             // all_completion_responses,
-                            current_seconds_from_gmt: this.current_seconds_from_gmt,
+                            current_seconds_from_gmt: Number(this.current_seconds_from_gmt),
                             current_user_timezone: this.current_user_timezone,
                             user_input_machine_scoring,
                             application_response_machine_scoring,
