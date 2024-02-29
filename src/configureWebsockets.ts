@@ -7,7 +7,7 @@ import * as Sentry from "@sentry/node";
 
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || "no-secret";
 
-import jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken"; 
 
 function onSocketPreError(err: Error) {
     console.error('WebSocket error:', err);
@@ -33,7 +33,7 @@ export const configureWebsockets = (server: Server) => {
     })
 
     wss.on('connection', (ws: WebSocket, request) => {
-        console.log("request: ", request);
+        // console.log("request: ", request);
         const authHeader = request.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
 

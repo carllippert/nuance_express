@@ -3,9 +3,6 @@ const VAD = require('node-vad');
 import { transcribeAudio } from './transcribeAudio';
 import { SHARED_TRANSCRIPTION_STATE, genStreamingSpeech, sendServerStateMessage } from "./streamingSpeech";
 
-
-
-
 ///Adjustments
 let VAD_MODE = VAD.Mode.NORMAL
 let SAMPLE_RATE = 48000
@@ -46,6 +43,7 @@ export class WebSocketWithVAD {
             switch (res) {
                 case VAD.Event.VOICE:
                     this.ws.send(JSON.stringify({ key: "vad", value: "voice" }));
+                    
                     this.consecutiveSpeechDetections += 1;
                     this.ws.send(JSON.stringify({ key: "message", value: "Consecutive Speech Detections " + this.consecutiveSpeechDetections }));
                     if (this.consecutiveSpeechDetections >= SPEECH_START_THRESHOLD && !this.isUserSpeaking) {

@@ -11,6 +11,7 @@ import {
 } from "../categorize/scoring";
 
 import { createClient } from "@supabase/supabase-js";
+import { applyHighPassFilter } from "./noiseSuppression";
 
 ///Adjustments
 let VAD_MODE = VAD.Mode.NORMAL
@@ -153,14 +154,18 @@ export class WebSocketWithVAD {
             console.log("Settig First Chunk Time:", this.firstChunkTime);
         }
 
+        let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 100);
+
+        console.log("Noise Suppression Done: " + noiseSupppressedAudio)
         //TODO: add audio processing here
         //ffmpeg INPUT -af lowpass=3000,highpass=200
         // let new_audio = applyHighpassFilter(audioChunk, 2, CLIENT_SENT_SAMPLE_RATE);
         console.log("Now Vad can process the audio chunk");
-        this.vadProcessor.processAudio(audioChunk, CLIENT_SENT_SAMPLE_RATE).then((res: any) => {
+        this.vadProcessor.processAudio(noiseSupppressedAudio, CLIENT_SENT_SAMPLE_RATE).then((res: any) => {
             switch (res) {
                 case VAD.Event.VOICE:
                     this.ws.send(JSON.stringify({ key: "vad", value: "voice" }));
+                    console.log("-- voice --");
                     this.addVoiceScore();
                     if (this.voiceScore > SPEECH_START_THRESHOLD && !this.isUserSpeaking) {
                         // Confirmed speech start
@@ -172,9 +177,11 @@ export class WebSocketWithVAD {
                     this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
                     break;
                 case VAD.Event.NOISE:
+                    console.log("-- noise --");
                     this.ws.send(JSON.stringify({ key: "vad", value: "noise" }));
                     this.addNotVoiceScore();
                 case VAD.Event.SILENCE:
+                    console.log("-- silence --");
                     this.addNotVoiceScore()
                     this.ws.send(JSON.stringify({ key: "vad", value: "silence" }));
                     //We started then stopped speaking
@@ -187,6 +194,7 @@ export class WebSocketWithVAD {
                     }
                     break;
                 case VAD.Event.ERROR:
+                    console.log("-- error --");
                     this.ws.send(JSON.stringify({ key: "vad", value: "error" }));
                     break;
                 default:
