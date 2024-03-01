@@ -8,6 +8,7 @@ import { text_to_speech_model } from "./scoringVad";
 const ffmpegStatic = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 
+
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const open_ai_audio_format = 'aac';
@@ -49,7 +50,7 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => 
 
         const response = await openai.audio.speech.create({
             model: text_to_speech_model,
-            voice: 'alloy',
+            voice: "nova",
             input: speech_text,
             response_format: open_ai_audio_format
         });
@@ -63,7 +64,6 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => 
         stream.pipe(opneAiFileWriteStream);
         opneAiFileWriteStream.on('finish', () => {
             console.log('Audio data saved to file:', openAiAudioFilePath);
-
         });
 
         const pcmAudioFilePath = './public/uploads/tts.pcm';
@@ -77,8 +77,13 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => 
                     '-acodec pcm_f32le', // Set audio codec to PCM 32-bit floating-point little endian
                     '-ar 24000', // Set sample rate to 48000 Hz
                     '-ac 1', // Set audio channels to 1 (mono)
-                    '-f f32le' // Set format to raw PCM 32-bit floating-point little endian
+                    '-f f32le', // Set format to raw PCM 32-bit floating-point little endian
+                    // Apply an equalizer filter to reduce harsh frequencies and loudnorm for normalization
+                    // '-af equalizer=f=5000:width_type=h:width=2000:g=-10'
+                    //  loudnorm=I=-23:LRA=7:TP=-2"'
                 ])
+                // .audioFilters('equalizer=f=4000:width_type=h:width=2000:g=-10') // Apply the high-pass filter
+                // .audioFilters(`highpass=f=${cutoffFrequency}`) // Apply the high-pass filter
                 .on('error', (err) => {
                     console.error('FFmpeg error:', err.message);
                     ws.send(JSON.stringify({ key: "error", value: "Error processing audio" }));

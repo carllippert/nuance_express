@@ -10,11 +10,10 @@ export const fetchCompletion = async (transcript: string) => {
             apiKey: process.env.OPENAI_API_KEY || "",
         });
 
-
-
         let system_prompt = `
-        Translate this sentence to english from spanish exactly leaving nothing out and adding nothing.
-        Use proper pronunciation.`
+        Translate this sentence to english exactly leaving nothing out and adding nothing.
+        Use proper pronunciation.
+        `
 
         const completion = await openai.chat.completions.create({
             messages: [
