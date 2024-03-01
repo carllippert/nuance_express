@@ -127,7 +127,7 @@ export class WebSocketWithVAD {
         this.lastScoreTime = Date.now();
         // } else {
 
-        if (this.firstChunkTime && (Date.now() - this.firstChunkTime.getTime()) > AUTO_PAUSE_THRESHOLD) {
+        if (this.firstChunkTime && (Date.now() - this.firstChunkTime.getTime()) > AUTO_PAUSE_THRESHOLD && !this.isUserSpeaking) {
             console.log("More than 20 seconds have passed since the first audio chunk was received");
             sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.AUTO_PAUSE);
         }
