@@ -37,7 +37,7 @@ export const sendServerStateMessage = (ws: WebSocket, value: SHARED_TRANSCRIPTIO
     ws.send(JSON.stringify(message));
 }
 
-export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => {
+export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, reset: () => void) => {
     try {
 
         console.log("Generating Speech Started")
@@ -114,7 +114,11 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket) => 
                 ws.send(JSON.stringify({ key: "message", value: "TTS streaming finished" }));
 
                 sendServerStateMessage(ws, SHARED_TRANSCRIPTION_STATE.STREAM_FINISHED);
-                //reset state
+                //reset vad state here again ( we do it when we start transcribing)
+                //but it seems that sometimes chunks are still inflight and land and trigger auto-pause
+                //because the state is not reset yet on the random chunks arriving. 
+                reset();
+                //reset local state
                 startedStreaming = false; //unsure if this is necessary
                 //finish file
                 pcmFileWriteStream.end();

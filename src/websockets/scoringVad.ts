@@ -49,8 +49,6 @@ export class WebSocketWithVAD {
     //will use for auto pause system
     private firstChunkTime: Date = null;
 
-    private lastScoreTime: number = null;
-
     private audioBuffer: Buffer = Buffer.alloc(0);
 
     constructor(
@@ -109,29 +107,21 @@ export class WebSocketWithVAD {
         this.notVoiceScore = Math.max(this.notVoiceScore - 1, 0);
         console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
         console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
-        console.log("Duration since last score time: " + (Date.now() - this.lastScoreTime) + "ms");
-        this.lastScoreTime = Date.now();
     }
 
     //change this so that we just zero out silence score when we start speaking
     //removing teh flag for isUserSpeaking because it means we get "isUserSpeaking" just by accumulating random 
     //wins from voice being detected
     private addNotVoiceScore = () => {
-        //only add to this score if user has started speeaking
-        //this score is for determinging when the stop talking and nothing else
-        // if (this.isUserSpeaking) {
         this.notVoiceScore = Math.max(this.notVoiceScore + 1, 0);
         this.voiceScore = Math.max(this.voiceScore - 1, 0);
         console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
-        console.log("Duration since last score time: " + (Date.now() - this.lastScoreTime) + "ms");
-        this.lastScoreTime = Date.now();
-        // } else {
 
-        if (this.firstChunkTime && (Date.now() - this.firstChunkTime.getTime()) > AUTO_PAUSE_THRESHOLD && !this.isUserSpeaking) {
+        if (this.firstChunkTime != null && (Date.now() - this.firstChunkTime.getTime()) > AUTO_PAUSE_THRESHOLD && !this.isUserSpeaking) {
             console.log("More than 20 seconds have passed since the first audio chunk was received");
+            console.log("Auto pausing: " + this.firstChunkTime.toISOString());
             sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.AUTO_PAUSE);
         }
-        // }
     }
 
     private resetVoiceScores = () => {
@@ -140,21 +130,14 @@ export class WebSocketWithVAD {
     }
 
     private resetVadState = () => {
-        this.notVoiceScore = 0;
-        this.voiceScore = 0;
+        this.resetVoiceScores();
         this.isUserSpeaking = false;
         this.audioBuffer = Buffer.alloc(0);
         this.firstChunkTime = null;
-        this.lastScoreTime = null;
     }
 
     private async processAudioChunk(audioChunk: Buffer): Promise<void> {
         console.log("Received audio chunk");
-
-        if (this.lastScoreTime == null) {
-            //init last score time ( we don't even use this but maybe we should?)
-            this.lastScoreTime = Date.now();
-        }
 
         this.ws.send(JSON.stringify({ key: "message", value: "Processing Audio Chunk" }));
         if (this.firstChunkTime == null) {
@@ -171,6 +154,9 @@ export class WebSocketWithVAD {
                     this.ws.send(JSON.stringify({ key: "vad", value: "voice" }));
                     console.log("-- voice --");
                     this.addVoiceScore();
+                    this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
+
+                    //if we have enough voice detections to confirm speech start
                     if (this.voiceScore > SPEECH_START_THRESHOLD && !this.isUserSpeaking) {
                         // Confirmed speech start
                         console.log("Confirmed speech start");
@@ -178,9 +164,9 @@ export class WebSocketWithVAD {
                         sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.VOICE_DETECTED);
                         this.isUserSpeaking = true;
                         //set counters back to zero when we notice user is speaking
+                        //Because now the score switches to determening when user has stopped speaking
                         this.resetVoiceScores();
                     }
-                    this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
                     break;
                 case VAD.Event.NOISE:
                     console.log("-- noise --");
@@ -196,6 +182,7 @@ export class WebSocketWithVAD {
                         sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.TRANSCRIBING);
                         //transcribe and stream speech
                         this.transcribeAndStreamSpeech(this.audioBuffer, this.user_id).catch(console.error);
+                        //reset state for next audio message
                         this.resetVadState();
                     }
                     break;
@@ -219,8 +206,8 @@ export class WebSocketWithVAD {
                 //We do not want to translate it. 
                 //We should just send the user a sorry message
                 let user_message = "Oops. Sorry. We got confused by some noise. Just keep reading and avoid noisy areas if possible."
-
-                genStreamingSpeech(user_message, this.ws);
+                
+                genStreamingSpeech(user_message, this.ws, this.resetVadState);
                 //"Oops sorry about that. Keep reading and we will try to transcribe again."
                 try {
                     const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
@@ -251,7 +238,7 @@ export class WebSocketWithVAD {
                     value2: spanish_transcript
                 }));
 
-                genStreamingSpeech(english_transcript, this.ws);
+                genStreamingSpeech(english_transcript, this.ws, this.resetVadState);
 
                 try {
                     //save to DB and analytics 
