@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { v4 as uuid } from 'uuid';
-import { translation_prompt, ChatCompletion, ConversationMessage } from "./config";
+import { translation_prompt, ChatCompletion, ConversationMessage } from "../utils/config";
+import TokenContext from '../utils/tokenContext';
 
 export async function translateText(text): Promise<{ text: string, completion_tokens: number, prompt_tokens: number, total_tokens: number }> {
 
@@ -24,7 +25,7 @@ export async function translateText(text): Promise<{ text: string, completion_to
             }
         });
 
-        // console.log(JSON.stringify(response.data));
+
         let completion: ChatCompletion = response.data;
 
         const firstResponse = completion.choices[0].message.content;
@@ -60,15 +61,12 @@ export async function translateConversationMessage(message: ConversationMessage)
     return { messages: [updatedMessage, newMessage], completion_tokens, total_tokens, prompt_tokens }
 }
 
-export async function translateConversation(conversation: ConversationMessage[]):
-    Promise<{ messages: ConversationMessage[], prompt_tokens: number, total_tokens: number, completion_tokens: number }> {
+export async function translateConversation(conversation: ConversationMessage[], tokenContext: TokenContext):
+    Promise<{ messages: ConversationMessage[], tokenContext: TokenContext }> {
 
     let translatedConversation: ConversationMessage[] = [];
-    let play_order = 0;
 
-    let propmt_tokens = 0;
-    let completion_tokens = 0;
-    let total_tokens = 0;
+    let play_order = 0;
 
     const translationPromises = conversation.map((conversationMessage) => {
         return translateConversationMessage(conversationMessage);
@@ -79,9 +77,12 @@ export async function translateConversation(conversation: ConversationMessage[])
 
     //loop through to results
     translatedResponses.forEach((response) => {
-        propmt_tokens += response.prompt_tokens;
-        completion_tokens += response.completion_tokens;
-        total_tokens += response.total_tokens;
+
+        tokenContext.addTokens({
+            completion_tokens: response.completion_tokens,
+            prompt_tokens: response.prompt_tokens,
+            total_tokens: response.total_tokens
+        });
 
         //loop through response and add a play order
         response.messages.forEach((message) => {
@@ -91,5 +92,5 @@ export async function translateConversation(conversation: ConversationMessage[])
         translatedConversation = [...translatedConversation, ...response.messages];
     });
 
-    return { messages: translatedConversation, prompt_tokens: propmt_tokens, total_tokens, completion_tokens }
+    return { messages: translatedConversation, tokenContext }
 }

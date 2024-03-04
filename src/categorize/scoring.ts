@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import { Language } from "node-nlp";
 
-// import { CURRENT_CAT_PROMPT } from "./prompts/categorizerPrompt";
 import { detect, detectAll } from "tinyld";
 
 export type TinyLDLanguageResponse = {
@@ -46,62 +45,9 @@ export const categorizeUserInput = async (
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY || "",
     });
-    //TODO: the biggest goal is to prevent accidentally adding words to the users "learned words"
-    //that are the wrong language. So we need to be very confident that the user is speaking
-    // const response = await openai.chat.completions.create({
-    //   model: "gpt-3.5-turbo",
-    //   messages: [
-    //     { role: "system", content: CURRENT_CAT_PROMPT.system_prompt },
-    //     { role: "user", content: transcription },
-    //   ],
-    //   tools: [
-    //     {
-    //       type: "function",
-    //       function: {
-    //         name: "detect_user_language",
-    //         description:
-    //           "Does different work depending on wether the user is speaking in spanish or english",
-    //         parameters: {
-    //           type: "object",
-    //           properties: {
-    //             isSpanish: {
-    //               type: "boolean",
-    //               description: "True if the user is speaking in Spanish.",
-    //             },
-    //             confidence: {
-    //               type: "number",
-    //               description: "The confidence of the model in its labeling.",
-    //             },
-    //           },
-    //           required: ["isSpanish", "confidence"],
-    //         },
-    //       },
-    //     },
-    //   ],
-    //   tool_choice: {
-    //     type: "function",
-    //     function: { name: "detect_user_language" },
-    //   },
-    // });
 
-    //console.log("categories response => ", JSON.stringify(response, null, 3));
-
-    // let args = response.choices[0].message?.tool_calls[0]?.function.arguments;
-    // let parsedArgs = JSON.parse(args);
-
-    //console.log(parsedArgs);
-
-    // let gpt3_isSpanish = parsedArgs.isSpanish;
-    // let gpt3_isSpanish_confidence = parsedArgs.confidence;
-    // let gpt3_prompt_verison_id = CURRENT_CAT_PROMPT.version_id;
     let spanish_points = 0;
     let english_points = 0;
-
-    // if (gpt3_isSpanish) {
-    //   spanish_points += 1;
-    // } else {
-    //   english_points += 1;
-    // }
 
     //point systems for the non LLM stuff
     let low_cost_spanish_points = 0;
@@ -144,9 +90,6 @@ export const categorizeUserInput = async (
       input: transcription,
       nlp_js_language,
       nlp_js_confidence,
-      // gpt3_isSpanish,
-      // gpt3_isSpanish_confidence,
-      // gpt3_prompt_verison_id,
       tinyld_language,
       tinyld_all_languages,
       spanish_points,
@@ -157,6 +100,6 @@ export const categorizeUserInput = async (
 
     return user_input_machine_scoring;
   } catch (error) {
-    // //console.log("error in categorizer:", error);
+    console.log("error in categorizer:", error);
   }
 };

@@ -1,8 +1,9 @@
-import axios from 'axios';
-import { ConversationFromGPT, ChatCompletion, llm_model } from "./config";
+import { v4 as uuid } from 'uuid';
+import { ConversationFromGPT, ChatCompletion, gpt3_turbo } from "../utils/config";
 import { openai_client } from '../libs/openai';
+import TokenContext from "../utils/tokenContext";
 
-export async function generateConversation(user_prompt: string): Promise<{ conversation: ConversationFromGPT, completion_tokens: number, prompt_tokens: number, total_tokens: number }> {
+export async function generateBaseCourseConversation(user_prompt: string, sytsem_prompt: string, tokenContext: TokenContext): Promise<ConversationFromGPT> {
     const function_name = "create_conversation";
 
     const tools = [
@@ -10,17 +11,17 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
             "type": "function",
             "function": {
                 "name": function_name,
-                "description": "Create a conversation between two people. don't put names in front of the messages. ",
+                "description": "Create a conversation between two people. Never put names in front of the messages. ",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "title": {
                             type: "string",
-                            description: "A short fun title for the conversation. Don't say 'conversation' in the title",
+                            description: "A 2 or 3 word fun title for the conversation. Never say 'conversation' in the title",
                         },
                         "description": {
                             type: "string",
-                            description: "A longer description of the conversation"
+                            description: "A short sentence description of the conversation and scene"
                         },
                         "emoji": {
                             type: "string",
@@ -37,7 +38,7 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
                                     },
                                     speaker: {
                                         type: "string",
-                                        description: "The person speaking"
+                                        description: "The name of the person who is speaking"
                                     },
                                     gender: {
                                         type: "string",
@@ -45,7 +46,7 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
                                         description: "The person speakings gender"
                                     }
                                 },
-                                required: ["text"]
+                                required: ["text", "speaker", "gender"]
                             }
                         }
                     },
@@ -58,12 +59,12 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
     //TODO: Require moderation for user prompts
     //TODO: inject book history into system prompt
     //TODO: add a "scene" perhaps to the function call to set the setting of the story as part of the intro?
-    let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards. `
+    // let course_generation_prompt = `You are an excellent spanish teacher with in depth knowledge of CEFR standards.`
 
     const messages = [
         {
             role: "system",
-            content: course_generation_prompt,
+            content: sytsem_prompt,
         },
         {
             role: "user",
@@ -73,18 +74,13 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
 
     try {
 
+
         let options = {
-            model: llm_model,
+            model: gpt3_turbo,
             messages,
             tools: tools,
+            max_tokens: 4096,
         }
-
-        // let headers = {
-        //     headers: {
-        //         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        //         'Content-Type': 'application/json'
-        //     }
-        // }
 
         const response = await openai_client.post('/chat/completions', options);
 
@@ -94,22 +90,28 @@ export async function generateConversation(user_prompt: string): Promise<{ conve
 
         let completion: ChatCompletion = response.data;
 
+        // console.log("Completion: ", JSON.stringify(completion));
+
         const firstResponse = completion.choices[0].message.tool_calls[0].function.arguments;
 
-        let parsed = JSON.parse(firstResponse);
+        let conversation: ConversationFromGPT = JSON.parse(firstResponse);
 
-        console.log("Tool Calls: ", JSON.stringify(firstResponse));
+        // console.log("Tool Calls: ", JSON.stringify(firstResponse));
 
-        const completion_tokens = completion.usage.completion_tokens;
-        const prompt_tokens = completion.usage.prompt_tokens;
-        const total_tokens = completion.usage.total_tokens;
+        //giving each message a UUID
+        let processed_messages = conversation.messages.map((message, index) => {
+            return { ...message, asset_id: uuid(), language: "en" }
+        })
 
-        return {
-            conversation: parsed,
-            completion_tokens,
-            prompt_tokens,
-            total_tokens
-        }
+        conversation.messages = processed_messages;
+
+        tokenContext.addTokens({
+            completion_tokens: completion.usage.completion_tokens,
+            prompt_tokens: completion.usage.prompt_tokens,
+            total_tokens: completion.usage.total_tokens
+        })
+
+        return conversation;
 
     } catch (error) {
         console.error('Error generating conversation:', error);

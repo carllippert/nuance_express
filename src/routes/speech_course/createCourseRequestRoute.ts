@@ -2,7 +2,7 @@ import { Router } from "express";
 
 const routes = Router();
 
-import { requestCourse } from "../speechCourses/requestCourse";
+import { requestCourse } from "../../speechCourses/requestCourse";
 
 routes.get('/:minutes/:cefr/:secret', async (req, res) => {
     try {

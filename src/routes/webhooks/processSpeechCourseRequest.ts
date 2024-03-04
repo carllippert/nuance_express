@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as Sentry from "@sentry/node";
 import type { Payload } from "./supabase_webhook_types";
-import { generateRequestedConversation } from "../../speechCourses/generateRequestedConverstaion";
+import { generateRequestedConversation } from "../../speechCourses/generateRequestedConverstion";
 
 const routes = Router();
 

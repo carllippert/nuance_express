@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { makeSpeechCourseText } from "./makeSpeechCourseText";
+import { createAndSaveSpeechCourseText } from "./makeSpeechCourseText";
 
 export const generateRequestedConversation = async (request_id: string) => {
     try {
@@ -34,7 +34,7 @@ export const generateRequestedConversation = async (request_id: string) => {
         ) throw new Error("Request data is missing");
 
         //make the course from params in request
-        let course = await makeSpeechCourseText(duration_minutes, cefr, public_course, speech_course_id);
+        let course = await createAndSaveSpeechCourseText(duration_minutes, cefr, public_course, speech_course_id);
 
         // save processing status on request
         return;
