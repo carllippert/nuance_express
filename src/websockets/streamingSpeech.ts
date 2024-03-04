@@ -58,16 +58,16 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
         const stream = response.body as unknown as Readable;
 
         //Nice for testing what the audio sounds like on this end
-        const openAiAudioFilePath = './public/uploads/tts.' + open_ai_audio_format;
-        const opneAiFileWriteStream = fs.createWriteStream(openAiAudioFilePath);
+        // const openAiAudioFilePath = './public/uploads/tts.' + open_ai_audio_format;
+        // const opneAiFileWriteStream = fs.createWriteStream(openAiAudioFilePath);
 
-        stream.pipe(opneAiFileWriteStream);
-        opneAiFileWriteStream.on('finish', () => {
-            console.log('Audio data saved to file:', openAiAudioFilePath);
-        });
+        // stream.pipe(opneAiFileWriteStream);
+        // opneAiFileWriteStream.on('finish', () => {
+        //     console.log('Audio data saved to file:', openAiAudioFilePath);
+        // });
 
-        const pcmAudioFilePath = './public/uploads/tts.pcm';
-        const pcmFileWriteStream = fs.createWriteStream(pcmAudioFilePath);
+        // const pcmAudioFilePath = './public/uploads/tts.pcm';
+        // const pcmFileWriteStream = fs.createWriteStream(pcmAudioFilePath);
 
         const convertAACtoPCMAndStream = (audioChunkStream, ws) => {
 
@@ -103,9 +103,10 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
                 if (ws.readyState === WebSocket.OPEN) {
                     ws.send(chunk);
                 }
+
                 console.log('Sent a chunk speech to client');
                 // Also write the same chunk to the file
-                pcmFileWriteStream.write(chunk);
+                // pcmFileWriteStream.write(chunk);
             });
 
             ffmpegStream.on('end', () => {
@@ -121,7 +122,7 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
                 //reset local state
                 startedStreaming = false; //unsure if this is necessary
                 //finish file
-                pcmFileWriteStream.end();
+                // pcmFileWriteStream.end();
             });
 
             ffmpegStream.on('error', (error) => {

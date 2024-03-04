@@ -1,7 +1,47 @@
 import OpenAI from "openai";
 import fs from "fs";
 
+import path from "path";
+import os from "os";
+
 import { CLIENT_SENT_SAMPLE_RATE, transcription_model } from "../websockets/scoringVad";
+
+// export const transcribeAudio = async (audioData: Buffer) => {
+//     try {
+//         console.log("Transcribing Audio Started");
+
+//         const openai = new OpenAI({
+//             apiKey: process.env.OPENAI_API_KEY || "",
+//         });
+
+//         // Prepend the WAV header to the raw PCM data
+//         const wavData = addWavHeader(audioData);
+
+//         const tempFilePath = `./public/uploads/user.wav`;
+
+//         if (fs.existsSync(tempFilePath)) {
+//             fs.unlinkSync(tempFilePath);
+//         }
+
+//         fs.writeFileSync(tempFilePath, wavData);
+
+//         const transcript = await openai.audio.transcriptions.create({
+//             file: fs.createReadStream(tempFilePath),
+//             model: transcription_model,
+//             language: "es",
+//             prompt: "¿Qué pasa? - dijo Ron"
+//         });
+
+//         // Clean up the temporary file
+//         fs.unlinkSync(tempFilePath); //Remove if you want to listen to audio
+
+//         // Implementation goes here
+//         return transcript.text;
+//     } catch (error) {
+//         console.error('Error transcribing audio:', error);
+//         throw error
+//     }
+// }
 
 export const transcribeAudio = async (audioData: Buffer) => {
     try {
@@ -14,14 +54,17 @@ export const transcribeAudio = async (audioData: Buffer) => {
         // Prepend the WAV header to the raw PCM data
         const wavData = addWavHeader(audioData);
 
-        const tempFilePath = `./public/uploads/user.wav`;
+        // Create a temporary file path
+        const randomSuffix = Math.floor(Math.random() * 1000);
+        const tempFileName = `user_audio_${Date.now()}_${randomSuffix}.wav`;
+        const tempFilePath = path.join(os.tmpdir(), tempFileName);
+        // const tempFileName = `user_audio_${Date.now()}.wav`;
+        // const tempFilePath = path.join(os.tmpdir(), tempFileName);
 
-        if (fs.existsSync(tempFilePath)) {
-            fs.unlinkSync(tempFilePath);
-        }
-
+        // Write the audio data to the temporary file
         fs.writeFileSync(tempFilePath, wavData);
 
+        // Use the temporary file for transcription
         const transcript = await openai.audio.transcriptions.create({
             file: fs.createReadStream(tempFilePath),
             model: transcription_model,
@@ -29,17 +72,15 @@ export const transcribeAudio = async (audioData: Buffer) => {
             prompt: "¿Qué pasa? - dijo Ron"
         });
 
-        // Clean up the temporary file
-        fs.unlinkSync(tempFilePath); //Remove if you want to listen to audio
+        // Optionally, delete the temporary file after use
+        fs.unlinkSync(tempFilePath);
 
-        // Implementation goes here
         return transcript.text;
     } catch (error) {
         console.error('Error transcribing audio:', error);
-        throw error
+        throw error;
     }
-}
-
+};
 // Add the WAV header to PCM data
 function addWavHeader(pcmData, sampleRate = CLIENT_SENT_SAMPLE_RATE, bitsPerSample = 16, channels = 1) {
     const byteRate = sampleRate * bitsPerSample * channels / 8;
