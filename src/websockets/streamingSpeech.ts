@@ -65,7 +65,7 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
         // opneAiFileWriteStream.on('finish', () => {
         //     console.log('Audio data saved to file:', openAiAudioFilePath);
         // });
-
+        
         // const pcmAudioFilePath = './public/uploads/tts.pcm';
         // const pcmFileWriteStream = fs.createWriteStream(pcmAudioFilePath);
 

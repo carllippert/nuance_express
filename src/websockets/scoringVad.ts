@@ -145,7 +145,9 @@ export class WebSocketWithVAD {
             console.log("Settig First Chunk Time:", this.firstChunkTime);
         }
 
-        //Noise cancelling for things like airconditioning nad machine humming
+        //Push unchanged audio always into the audiobuffer used fro transcribing
+        this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
+        //Noise cancelling for things like airconditioning and machine humming
         let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 100);
 
         this.vadProcessor.processAudio(noiseSupppressedAudio, CLIENT_SENT_SAMPLE_RATE).then((res: any) => {
@@ -154,7 +156,7 @@ export class WebSocketWithVAD {
                     this.ws.send(JSON.stringify({ key: "vad", value: "voice" }));
                     console.log("-- voice --");
                     this.addVoiceScore();
-                    this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
+                    // this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
 
                     //if we have enough voice detections to confirm speech start
                     if (this.voiceScore > SPEECH_START_THRESHOLD && !this.isUserSpeaking) {
@@ -206,7 +208,7 @@ export class WebSocketWithVAD {
                 //We do not want to translate it. 
                 //We should just send the user a sorry message
                 let user_message = "Oops. Sorry. We got confused by some noise. Just keep reading and avoid noisy areas if possible."
-                
+
                 genStreamingSpeech(user_message, this.ws, this.resetVadState);
                 //"Oops sorry about that. Keep reading and we will try to transcribe again."
                 try {
