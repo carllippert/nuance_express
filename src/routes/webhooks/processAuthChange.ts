@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/node";
-import { createLoopsContact, createLoopsContactAndUpdateSupabase, sendEventToLoopsAndPosthog } from "../../libs/sendEvents";
+import { createLoopsContact, createLoopsContactAndUpdateSupabase, identifyUser, sendEventToLoopsAndPosthog } from "../../libs/sendEvents";
 
 const routes = Router();
 
@@ -45,6 +45,7 @@ routes.post("/", async (req, res) => {
             //Add User as contact to Loops
             let newUserRes = await createLoopsContact(email, userId);
             let res = await sendEventToLoopsAndPosthog(email, userId, "app_sign_up");
+            await identifyUser(email, userId);
         }
 
         if (event.type === 'UPDATE' && event.table === 'users') {
@@ -58,6 +59,7 @@ routes.post("/", async (req, res) => {
                     let userId = row.id;
                     let email = row.email;
                     let res = await sendEventToLoopsAndPosthog(email, userId, "auth_confirmed");
+                    await identifyUser(email, userId);
                 } else {
                     console.log("No auth events we care to listen too");
                 }

@@ -27,6 +27,32 @@ export const createLoopsContact = async (email, userId) => {
     }
 }
 
+export const identifyUser = async (email, userId) => {
+    try {
+        //send same events to posthog
+        const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
+
+        console.log("Identifying User For Posthog: ", email, " - ", userId);
+
+        //Capture in Posthog
+        posthog.identify({
+            distinctId: userId.toUpperCase(),
+            properties: {
+                email: email
+            }
+        })
+
+        //Capture in Sentry
+        Sentry.setUser({ id: userId.toUpperCase() });
+
+    } catch (error) {
+        Sentry.captureMessage("Error identifying user in Posthog");
+        Sentry.captureException(error);
+        console.error("Error identifying user in Posthog:", error);
+        throw error;
+    }
+}
+
 export const createLoopsContactAndUpdateSupabase = async (userId) => {
     try {
 
@@ -88,12 +114,14 @@ export const sendEventToLoopsAndPosthog = async (email: string, userId: string, 
             //send same events to posthog
             const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
 
-            console.log("Adding Event to Posthog for: ", email, " - ", userId , " - ", eventName);
-        
+            console.log("Adding Event to Posthog for: ", email, " - ", userId, " - ", eventName);
+
             posthog.capture({
-                distinctId: userId.toUpperCase(), 
+                distinctId: userId.toUpperCase(),
                 event: eventName,
             });
+            
+            await identifyUser(email, userId);
 
             return resp;
 

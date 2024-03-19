@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
+import { identifyUser } from "../../libs/sendEvents";
 
 const routes = Router();
 
@@ -112,6 +113,7 @@ routes.get("/:invite_email/:secret",
             })
 
 
+
             if (error) {
                 console.log("Invite User By Email Error", error);
                 throw new Error("Cannot Invite user By Email: " + error.message);
@@ -119,6 +121,9 @@ routes.get("/:invite_email/:secret",
             if (!data) throw new Error("Failed to invite user by email");
 
             const user_id = data.user.id;
+
+
+            await identifyUser(invite_email, user_id);
 
             console.log("User ID", user_id);
 
