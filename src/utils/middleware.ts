@@ -29,7 +29,7 @@ export const authenticateToken = (req: RequestWithUserId, res, next) => {
 
   if (token == null) {
 
-    return res.sendStatus(401); 
+    return res.sendStatus(401);
   }// No token provided
 
   const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || "no-secret";
@@ -38,10 +38,9 @@ export const authenticateToken = (req: RequestWithUserId, res, next) => {
     if (err) return res.sendStatus(403); // Invalid token
     let id = user.sub.toString();
     req.user_id = id; // Add the user_id payload to the request
-
     //identify user for sentry error reporting
     Sentry.setUser({ id });
-    
+
     next(); // Continue to the next middleware/route handler
   });
 };
