@@ -32,12 +32,18 @@ dependencies:
   axios-retry:
     specifier: ^4.0.0
     version: 4.0.0(axios@1.6.5)
+  compromise:
+    specifier: ^14.12.0
+    version: 14.12.0
   cors:
     specifier: ^2.8.5
     version: 2.8.5
   dotenv:
     specifier: ^16.3.1
     version: 16.3.1
+  es-compromise:
+    specifier: ^0.2.11
+    version: 0.2.11
   express-validator:
     specifier: ^7.0.1
     version: 7.0.1
@@ -1323,6 +1329,24 @@ packages:
       delayed-stream: 1.0.0
     dev: false
 
+  /compromise@14.11.1:
+    resolution: {integrity: sha512-Rb7nWsD+5PaMrzTu+wnGbW459DT5877KTEABsZl34JVJ/QuMRyrc4Jsfe5kDXZI00f2XKrMuiuOJJbppCPQq+A==}
+    engines: {node: '>=12.0.0'}
+    dependencies:
+      efrt: 2.7.0
+      grad-school: 0.0.5
+      suffix-thumb: 5.0.2
+    dev: false
+
+  /compromise@14.12.0:
+    resolution: {integrity: sha512-IVJ+ZXgm7Nc9Zobgl8glEir9QYJUc241EggW0JjKBdpRXJjvKB2Y7F+tiJ+vrVk9RQkHoQH5QhPgFX5jX+qL7A==}
+    engines: {node: '>=12.0.0'}
+    dependencies:
+      efrt: 2.7.0
+      grad-school: 0.0.5
+      suffix-thumb: 5.0.2
+    dev: false
+
   /concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
     dev: false
@@ -1502,6 +1526,11 @@ packages:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
     dev: true
 
+  /efrt@2.7.0:
+    resolution: {integrity: sha512-/RInbCy1d4P6Zdfa+TMVsf/ufZVotat5hCw3QXmWtjU+3pFEOvOQ7ibo3aIxyCJw2leIeAMjmPj+1SLJiCpdrQ==}
+    engines: {node: '>=12.0.0'}
+    dev: false
+
   /emitter-component@1.1.2:
     resolution: {integrity: sha512-QdXO3nXOzZB4pAjM0n6ZE+R9/+kPpECA/XSELIcc54NeYVnBqIk+4DFiBgK+8QbV3mdvTG6nedl7dTYgO+5wDw==}
     dev: false
@@ -1530,6 +1559,14 @@ packages:
 
   /err-code@2.0.3:
     resolution: {integrity: sha512-2bmlRpNKBxT/CRmPOlyISQpNj+qSeYvcym/uT0Jx2bMOlKLtSy1ZmLuVxSEKKyor/N5yhvp/ZiG1oE3DEYMSFA==}
+    dev: false
+
+  /es-compromise@0.2.11:
+    resolution: {integrity: sha512-5rGBBkrjH9KtrCOOdOFFMfHXE2JKPBXoddzZxvxxdvy+uJzPjyyLxT4/YntDKIuHceZ7J30K497VJl5AQshwNw==}
+    dependencies:
+      compromise: 14.11.1
+      efrt: 2.7.0
+      suffix-thumb: 5.0.2
     dev: false
 
   /es5-ext@0.10.62:
@@ -1845,6 +1882,11 @@ packages:
 
   /graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+    dev: false
+
+  /grad-school@0.0.5:
+    resolution: {integrity: sha512-rXunEHF9M9EkMydTBux7+IryYXEZinRk6g8OBOGDBzo/qWJjhTxy86i5q7lQYpCLHN8Sqv1XX3OIOc7ka2gtvQ==}
+    engines: {node: '>=8.0.0'}
     dev: false
 
   /grapheme-splitter@1.0.4:
@@ -2864,6 +2906,10 @@ packages:
     dependencies:
       '@tokenizer/token': 0.3.0
       peek-readable: 4.1.0
+    dev: false
+
+  /suffix-thumb@5.0.2:
+    resolution: {integrity: sha512-I5PWXAFKx3FYnI9a+dQMWNqTxoRt6vdBdb0O+BJ1sxXCWtSoQCusc13E58f+9p4MYx/qCnEMkD5jac6K2j3dgA==}
     dev: false
 
   /supports-color@5.5.0:

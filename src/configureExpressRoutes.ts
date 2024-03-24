@@ -9,6 +9,7 @@ import processSpeechCourseRequestRoute from "./routes/webhooks/processSpeechCour
 import processSpeechCourseAudioGenerationRequestRoute from "./routes/webhooks/processCourseAudioGenerationRequest";
 
 import processMessageRoute from "./routes/webhooks/processMessages";
+import processSystemWordsRoute from "./routes/webhooks/processSystemWords";
 import inviteUserRoute from "./routes/user_admin/inviteUser";
 import promoRoute from "./routes/user_admin/promoCodes";
 import webPromoRoute from "./routes/user_admin/webPromoCode";
@@ -73,6 +74,7 @@ export const configureExpressRoutes = (app: Application) => {
     app.use("/webhooks/process-messages", processMessageRoute);
     app.use("/webhooks/process-revcat-webhooks", processRevcatWebhookRoute);
     app.use("/webhooks/process-auth-change", processAuthChangeRoute);
+    app.use("/webhooks/process-system-words", processSystemWordsRoute);
 
     ///////////////////////////////////
     ///////////////////////////////////
