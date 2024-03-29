@@ -1,5 +1,4 @@
 import { WebSocket } from "ws";
-import fs from 'fs';
 
 import OpenAI from "openai";
 

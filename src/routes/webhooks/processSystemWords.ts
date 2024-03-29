@@ -5,6 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 import nlp from 'es-compromise'
 import { OxfordData } from "../../types/oxford";
 
+import { Context } from "./context";
+
 type WordContext = {
     language: string;
     word_id: string;
@@ -15,6 +17,17 @@ type WordContext = {
     oxford_lemma?: string;
     oxford_lemma_blob?: OxfordData;
     capitalized: boolean;
+}
+
+type ProcessingContext = {
+    root_words_from_comporomise: number;
+    root_words_from_oxford: number;
+    proper_nouns: number;
+    no_root_or_lemma: number;
+    root_but_no_lemma: number;
+    root_but_no_lemma_words: string[];
+    no_root_or_lemma_words: string[];
+    word_pairs: { lemma: string, root: string }[];
 }
 
 const routes = Router();
@@ -30,6 +43,24 @@ routes.get("/", async (req, res) => {
     try {
         console.log("process-system_words body: ", req.body);
 
+        let processingContext = new Context<ProcessingContext>({
+            root_words_from_comporomise: 0,
+            root_words_from_oxford: 0,
+            proper_nouns: 0,
+            no_root_or_lemma: 0,
+            root_but_no_lemma: 0,
+            root_but_no_lemma_words: [],
+            no_root_or_lemma_words: [],
+            word_pairs: []
+        });
+
+        // let processingContext: ProcessingContext = {
+        //     root_but_no_lemma: 0,
+        //     root_words_from_comporomise: 0,
+        //     root_words_from_oxford: 0,
+        //     proper_nouns: 0,
+        //     no_root_or_lemma: 0
+        // }
         // Create a single supabase client
         const supabase = createClient(
             process.env.SUPABASE_URL || "",
@@ -60,10 +91,7 @@ routes.get("/", async (req, res) => {
                 language: word.language,
                 word_id: word.word_id,
                 word_original_format: word.word_original_format,
-                // nlp_blob: null,
                 noun_points: 0,
-                // root: '',
-                // oxford_lemma: '',
                 capitalized: false
             };
 
@@ -80,14 +108,14 @@ routes.get("/", async (req, res) => {
             let doc = nlp(word.word_id);
             doc.compute('root'); // get lemma
             let json = doc.json();
-            // console.log("doc: ", JSON.stringify(json, null, 2));
-
             //check if "ProperNoun" exists in terms
             let properNoun = json[0].terms.find(term => term.tags.includes("ProperNoun"));
             let noun = json[0].terms.find(term => term.tags.includes("Noun"));
 
             if (properNoun) {
                 wordContext.noun_points += 1;
+                // processingContext.proper_nouns += 1;
+                processingContext.addValues({ proper_nouns: 1 });
             }
 
             if (noun) {
@@ -96,26 +124,22 @@ routes.get("/", async (req, res) => {
 
             //add root word to the word
             let root = json[0].terms[0].root;
-            // console.log("Root: ", JSON.stringify(root, null, 2));
 
-            // let scored = { ...json[0], noun_points, root: root.text };
-            // let scored: any = { noun_points, text: word.word_id, original_format: word.word_original_format };
 
             if (root != undefined) {
                 wordContext.root = root;
+                processingContext.addValues({ root_words_from_comporomise: 1 });
+                // processingContext.root_words_from_comporomise += 1;
             }
 
-            // scored_words.push(scored);
-            // console.log("Scored Words: ", JSON.stringify(scored, null, 2));
-            // {
-            //     console.log("NOT ProperNoun: ", JSON.stringify(json[0], null, 2));
-            //     non_proper_noun_nlp_blobs.push(json[0]);
-            // }
-
-            lemma_calls.push(getLemma(wordContext));
+            lemma_calls.push(getLemma(wordContext, processingContext));
         });
 
         let lemmas = await Promise.all(lemma_calls);
+
+        // console.log("ProcessingContext: ", JSON.stringify(lemmas.processingContext, null, 2)
+
+        console.log(processingContext.fetchContext());
 
         // console.log("Lemmas: ", JSON.stringify(lemmas, null, 2));
 
@@ -211,7 +235,7 @@ const getDefinition = async (language: string, word: string) => {
     }
 };
 
-const getLemma = async (word: WordContext) => {
+const getLemma = async (word: WordContext, processingContext: Context<ProcessingContext>) => {
 
     //use root if we have it
     let word_text = word.root || word.word_id;
@@ -248,15 +272,31 @@ const getLemma = async (word: WordContext) => {
 
         if (lemmaWord) {
             // const data = await getDefinition(language, lemmaWord);
-
+            // processingContext.root_words_from_oxford += 1;
+            processingContext.addValues({ root_words_from_oxford: 1 });
             word.oxford_lemma = lemmaWord;
             word.oxford_lemma_blob = parsed;
             // return word;
         } else {
+            if (word.root) {
+                // processingContext.root_but_no_lemma += 1;
+                processingContext.addValues({ root_but_no_lemma: 1, root_but_no_lemma_words: [word.word_id] });
+                // processingContext.root_but_no_lemma_words.push(word.root);
+
+            } else {
+                // processingContext.no_root_or_lemma += 1;
+                // processingContext.no_root_or_lemma_words.push(word.word_id);
+                processingContext.addValues({ no_root_or_lemma: 1, no_root_or_lemma_words: [word.word_id] });
+            }
+
+            // proce.no_root_or_lemma += 1;
             console.log("Didnt grab lemma word for ...");
             console.log(JSON.stringify(body, null, 3));
             // return word;
         }
+
+        processingContext.addValues({ word_pairs: [{ lemma: lemmaWord, root: word.root }] });
+
         console.log("Word: ", JSON.stringify(word, null, 2));
         return word;
     } catch (err) {
