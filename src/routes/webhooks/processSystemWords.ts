@@ -295,7 +295,7 @@ const getLemma = async (word: WordContext, processingContext: Context<Processing
             // return word;
         }
 
-        processingContext.addValues({ word_pairs: [{ lemma: lemmaWord, root: word.root }] });
+        processingContext.addValues({ word_pairs: [{ word: word.word_id, lemma: lemmaWord, root: word.root }] });
 
         console.log("Word: ", JSON.stringify(word, null, 2));
         return word;
