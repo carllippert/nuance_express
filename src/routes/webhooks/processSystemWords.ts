@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 // import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import nlp from 'es-compromise'
 import { OxfordData } from "../../types/oxford";
-
 import { Context } from "./context";
 
 type WordContext = {
@@ -37,7 +36,7 @@ const routes = Router();
 //Get word lemmas roots etc
 //Get word definitions
 //Score words
-//Save words and definitions to the database
+//Save words and definitions to the database    
 
 routes.get("/", async (req, res) => {
     try {
@@ -54,13 +53,6 @@ routes.get("/", async (req, res) => {
             word_pairs: []
         });
 
-        // let processingContext: ProcessingContext = {
-        //     root_but_no_lemma: 0,
-        //     root_words_from_comporomise: 0,
-        //     root_words_from_oxford: 0,
-        //     proper_nouns: 0,
-        //     no_root_or_lemma: 0
-        // }
         // Create a single supabase client
         const supabase = createClient(
             process.env.SUPABASE_URL || "",
@@ -73,15 +65,9 @@ routes.get("/", async (req, res) => {
             .select("*")
             .eq("processing_status", "NEW")
             .order('created_at', { ascending: true })
-            .limit(100) //TODO: change to 10 when ready
+            .limit(2) //TODO: change to 10 when ready
 
         if (error) throw new Error(error.message);
-
-        // let nouns = [];
-        // let proper_nouns = [];
-        // let non_proper_noun_nlp_blobs = [];
-
-        // let scored_words = [];
 
         let lemma_calls = [];
 
@@ -95,8 +81,6 @@ routes.get("/", async (req, res) => {
                 capitalized: false
             };
 
-            // let noun_points = 0;
-
             let capitalized = word.word_original_format[0] === word.word_original_format[0].toUpperCase();
 
             if (capitalized) {
@@ -104,13 +88,12 @@ routes.get("/", async (req, res) => {
                 wordContext.capitalized = true;
             }
 
-            // console.log("Word: ", word);
             let doc = nlp(word.word_id);
             doc.compute('root'); // get lemma
             let json = doc.json();
             //check if "ProperNoun" exists in terms
             let properNoun = json[0].terms.find(term => term.tags.includes("ProperNoun"));
-            let noun = json[0].terms.find(term => term.tags.includes("Noun"));
+            // let noun = json[0].terms.find(term => term.tags.includes("Noun"));
 
             if (properNoun) {
                 wordContext.noun_points += 1;
@@ -118,9 +101,9 @@ routes.get("/", async (req, res) => {
                 processingContext.addValues({ proper_nouns: 1 });
             }
 
-            if (noun) {
-                wordContext.noun_points += 1;
-            }
+            // if (noun) {
+            //     wordContext.noun_points += 1;
+            // }
 
             //add root word to the word
             let root = json[0].terms[0].root;
@@ -129,7 +112,6 @@ routes.get("/", async (req, res) => {
             if (root != undefined) {
                 wordContext.root = root;
                 processingContext.addValues({ root_words_from_comporomise: 1 });
-                // processingContext.root_words_from_comporomise += 1;
             }
 
             lemma_calls.push(getLemma(wordContext, processingContext));
@@ -248,58 +230,83 @@ const getLemma = async (word: WordContext, processingContext: Context<Processing
 
     console.log("Path -> " + path);
 
-    const options = {
-        // host: "https://od-api.oxforddictionaries.com",
-        port: "443",
-        path,
-        method: "GET",
-        headers: {
-            app_id: process.env.OXFORD_API_ID,
-            app_key: process.env.OXFORD_API_KEY
-        },
-    };
+    // const options = {
+    //     // host: "https://od-api.oxforddictionaries.com",
+    //     port: "443",
+    //     path,
+    //     method: "GET",
+    //     headers: {
+    //         app_id: process.env.OXFORD_API_ID,
+    //         app_key: process.env.OXFORD_API_KEY
+    //     },
+    // };
 
     try {
-        const resp = await fetch(`${oxford_base_url}${options.path}`, {
+        const options = {
+            host: "od-api.oxforddictionaries.com",
+            port: "443",
+            path,
+            method: "GET",
+            headers: {
+                app_id: process.env.OXFORD_API_ID,
+                app_key: process.env.OXFORD_API_KEY
+            },
+        };
+        
+        const resp = await fetch(`${oxford_base_url}${path}`, {
             method: options.method,
             headers: options.headers,
         });
+        // const resp = await fetch(`${oxford_base_url}${path}`, {
+        //     method: "GET",
+        //     port: "443",
+        //     headers: {
+        //         app_id: process.env.OXFORD_API_ID,
+        //         app_key: process.env.OXFORD_API_KEY
+        //     },
+        // });
+
         const body = await resp.text();
-        console.log(body, null, 3);
-        const parsed: OxfordData = JSON.parse(body);
 
-        const lemmaWord = parsed.results?.[0]?.lexicalEntries?.[0]?.inflectionOf?.[0]?.text;
 
-        if (lemmaWord) {
-            // const data = await getDefinition(language, lemmaWord);
-            // processingContext.root_words_from_oxford += 1;
-            processingContext.addValues({ root_words_from_oxford: 1 });
-            word.oxford_lemma = lemmaWord;
-            word.oxford_lemma_blob = parsed;
-            // return word;
-        } else {
-            if (word.root) {
-                // processingContext.root_but_no_lemma += 1;
-                processingContext.addValues({ root_but_no_lemma: 1, root_but_no_lemma_words: [word.word_id] });
-                // processingContext.root_but_no_lemma_words.push(word.root);
 
-            } else {
-                // processingContext.no_root_or_lemma += 1;
-                // processingContext.no_root_or_lemma_words.push(word.word_id);
-                processingContext.addValues({ no_root_or_lemma: 1, no_root_or_lemma_words: [word.word_id] });
-            }
+        console.log("BODY: ", body, null, 3);
 
-            // proce.no_root_or_lemma += 1;
-            console.log("Didnt grab lemma word for ...");
-            console.log(JSON.stringify(body, null, 3));
-            // return word;
-        }
+        // const parsed: OxfordData = JSON.parse(body);
 
-        processingContext.addValues({ word_pairs: [{ word: word.word_id, lemma: lemmaWord, root: word.root }] });
+        // const lemmaWord = parsed.results?.[0]?.lexicalEntries?.[0]?.inflectionOf?.[0]?.text;
+
+        // if (lemmaWord) {
+        //     // const data = await getDefinition(language, lemmaWord);
+        //     // processingContext.root_words_from_oxford += 1;
+        //     processingContext.addValues({ root_words_from_oxford: 1 });
+        //     word.oxford_lemma = lemmaWord;
+        //     word.oxford_lemma_blob = parsed;
+        //     // return word;
+        // } else {
+        //     if (word.root) {
+        //         // processingContext.root_but_no_lemma += 1;
+        //         processingContext.addValues({ root_but_no_lemma: 1, root_but_no_lemma_words: [word.word_id] });
+        //         // processingContext.root_but_no_lemma_words.push(word.root);
+
+        //     } else {
+        //         // processingContext.no_root_or_lemma += 1;
+        //         // processingContext.no_root_or_lemma_words.push(word.word_id);
+        //         processingContext.addValues({ no_root_or_lemma: 1, no_root_or_lemma_words: [word.word_id] });
+        //     }
+
+        //     // proce.no_root_or_lemma += 1;
+        //     console.log("Didnt grab lemma word for ...");
+        //     console.log(JSON.stringify(body, null, 3));
+        //     // return word;
+        // }
+
+        // processingContext.addValues({ word_pairs: [{ word: word.word_id, lemma: lemmaWord, root: word.root }] });
 
         console.log("Word: ", JSON.stringify(word, null, 2));
         return word;
     } catch (err) {
+        console.log("Hit Error in get Lemma. => " + JSON.stringify(err));
         throw err;
     }
 };

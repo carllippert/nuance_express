@@ -4,6 +4,7 @@ import cors from "cors";
 
 import whisperRoute from "./routes/reading/readingRoute";
 import talkRoute from "./routes/talk";
+import defineRoute from "./routes/define";
 import requestSpeechCourseRoute from "./routes/speech_course/createCourseRequestRoute";
 import processSpeechCourseRequestRoute from "./routes/webhooks/processSpeechCourseRequest";
 import processSpeechCourseAudioGenerationRequestRoute from "./routes/webhooks/processCourseAudioGenerationRequest";
@@ -63,10 +64,12 @@ export const configureExpressRoutes = (app: Application) => {
 
     //Routes used in applications
     app.use("/upload", whisperRoute)
+    app.use("/talk", talkRoute)
+    app.use("/define", defineRoute)
+
+    //route used internally or ad-hoc
     app.use("/promo", promoRoute)
     app.use("/web-promo", webPromoRoute)
-    app.use("/talk", talkRoute)
-
 
     app.use("/invite", inviteUserRoute)
 
