@@ -20,7 +20,9 @@ const SPEECH_START_THRESHOLD = 10 // Number of consecutive speech detections nee
 const SPEECH_END_THRESHOLD = 10 // Number of consecutive speech detections needed to confirm end
 
 const AUTO_PAUSE_THRESHOLD = 20000 // 20 seconds
-const HEARTBEAT_INTERVAL = 1000 * 5; // 5 seconds
+const HEARTBEAT_INTERVAL = 1000 * 10; // 5 seconds //TODO: change to 10 seconds or average speaking length?
+//Seems in bad connections this maybe gets drowned out by upstreaming data?
+//failing while in argentina intermittently
 const HEARTBEAT_VALUE = new Uint8Array([0]);
 
 export const transcription_model = "whisper-1"
@@ -90,7 +92,7 @@ export class WebSocketWithVAD {
                 /// 4000 is an open code https://www.rfc-editor.org/rfc/rfc6455.html#section-7.4.2
                 return;
             }
-            //set to false everyt time
+            //set to false every time
             //gets turned true when the pong is received
             this.isAlive = false;
             ping(this.ws);
@@ -148,7 +150,7 @@ export class WebSocketWithVAD {
         //Push unchanged audio always into the audiobuffer used fro transcribing
         this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
         //Noise cancelling for things like airconditioning and machine humming
-        let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 100);
+        let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 200);
 
         this.vadProcessor.processAudio(noiseSupppressedAudio, CLIENT_SENT_SAMPLE_RATE).then((res: any) => {
             switch (res) {

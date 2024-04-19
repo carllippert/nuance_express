@@ -46,6 +46,9 @@ routes.post("/", async (req, res) => {
             let newUserRes = await createLoopsContact(email, userId);
             let res = await sendEventToLoopsAndPosthog(email, userId, "app_sign_up");
             await identifyUser(email, userId);
+        } else {
+            //Maybe this is where apple id stuff shows up?
+            
         }
 
         if (event.type === 'UPDATE' && event.table === 'users') {

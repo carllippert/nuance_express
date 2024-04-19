@@ -4,11 +4,13 @@ import cors from "cors";
 
 import whisperRoute from "./routes/reading/readingRoute";
 import talkRoute from "./routes/talk";
+import defineRoute from "./routes/define";
 import requestSpeechCourseRoute from "./routes/speech_course/createCourseRequestRoute";
 import processSpeechCourseRequestRoute from "./routes/webhooks/processSpeechCourseRequest";
 import processSpeechCourseAudioGenerationRequestRoute from "./routes/webhooks/processCourseAudioGenerationRequest";
 
 import processMessageRoute from "./routes/webhooks/processMessages";
+import processSystemWordsRoute from "./routes/webhooks/processSystemWords";
 import inviteUserRoute from "./routes/user_admin/inviteUser";
 import promoRoute from "./routes/user_admin/promoCodes";
 import webPromoRoute from "./routes/user_admin/webPromoCode";
@@ -62,10 +64,12 @@ export const configureExpressRoutes = (app: Application) => {
 
     //Routes used in applications
     app.use("/upload", whisperRoute)
+    app.use("/talk", talkRoute)
+    app.use("/define", defineRoute)
+
+    //route used internally or ad-hoc
     app.use("/promo", promoRoute)
     app.use("/web-promo", webPromoRoute)
-    app.use("/talk", talkRoute)
-
 
     app.use("/invite", inviteUserRoute)
 
@@ -73,6 +77,7 @@ export const configureExpressRoutes = (app: Application) => {
     app.use("/webhooks/process-messages", processMessageRoute);
     app.use("/webhooks/process-revcat-webhooks", processRevcatWebhookRoute);
     app.use("/webhooks/process-auth-change", processAuthChangeRoute);
+    app.use("/webhooks/process-system-words", processSystemWordsRoute);
 
     ///////////////////////////////////
     ///////////////////////////////////
