@@ -6,7 +6,7 @@ ffmpeg.setFfmpegPath(ffmpegStatic);
 
 import { Readable, Writable } from 'stream';
 
-export const applyHighPassFilter = async (audioChunk: Buffer, cutoffFrequency: number = 20): Promise<Buffer> => {
+export const applyHighPassFilter = async (audioChunk: Buffer, cutoffFrequency: number): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
         const inputAudioStream = new Readable({
             read() { }

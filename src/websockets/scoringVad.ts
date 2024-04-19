@@ -150,7 +150,7 @@ export class WebSocketWithVAD {
         //Push unchanged audio always into the audiobuffer used fro transcribing
         this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
         //Noise cancelling for things like airconditioning and machine humming
-        let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 150);
+        let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 200);
 
         this.vadProcessor.processAudio(noiseSupppressedAudio, CLIENT_SENT_SAMPLE_RATE).then((res: any) => {
             switch (res) {
