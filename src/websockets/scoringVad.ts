@@ -303,6 +303,8 @@ export class WebSocketWithVAD {
                             transcription_model,
                             text_to_speech_model,
                             llm_model,
+                            response_message_text: english_transcript,
+                            transcription_response_text: spanish_transcript,
                             // total_completion_tokens,
                             //timing data
                             // ...speed_data,
