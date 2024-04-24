@@ -290,13 +290,13 @@ export class WebSocketWithVAD {
                 } catch (error: any) {
                     console.log("error in message persistance:", JSON.stringify(error));
                 }
-                        
+
                 try {
                     const posthog = new PostHog(process.env.POSTHOG_API_KEY || "")
 
                     posthog.capture({
                         distinctId: user_id.toUpperCase(),
-                        event: "message_received",
+                        event: "server_generated_message_content",
                         properties: {
                             message_input_classification: "reading",
                             message_input_classifier: "none",  //in future maybe it can be automatic  with AI
