@@ -44,7 +44,7 @@ export const configureWebsockets = (server: Server) => {
         console.log("current_seconds_from_gmt:", current_seconds_from_gmt);
 
         if (!current_user_timezone || !current_seconds_from_gmt) {
-            console.log("No User Timezone Provided:");
+            console.error("No User Timezone Provided:");
 
             //Not Authorized
             ws.send(JSON.stringify({ key: "error", value: "401" }));
@@ -59,7 +59,7 @@ export const configureWebsockets = (server: Server) => {
         jwt.verify(token, SUPABASE_JWT_SECRET, (err, user) => {
             console.log('User:', user);
             if (!user) {
-                console.log("JWT Verification failed with error:", err);
+                console.error("JWT Verification failed with error:", err);
 
                 //Not Authorized
                 ws.send(JSON.stringify({ key: "error", value: "401" }));
@@ -73,7 +73,7 @@ export const configureWebsockets = (server: Server) => {
             const user_id = id.toUpperCase();
 
             if (err) {
-                console.log("JWT Verification failed with error:", err);
+                console.error("JWT Verification failed with error:", err);
 
                 //Not Authorized
                 ws.send(JSON.stringify({ key: "error", value: "401" }));

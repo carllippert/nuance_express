@@ -1,6 +1,5 @@
 const ffmpegStatic = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
-import fs from 'fs';
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
@@ -22,7 +21,12 @@ export const applyHighPassFilter = async (audioChunk: Buffer, cutoffFrequency: n
             .audioFilters(`highpass=f=${cutoffFrequency}`) // Apply the high-pass filter
             .outputFormat('s16le') // Specify output format
             .audioCodec('pcm_s16le') // Ensure the output is PCM
-            .on('error', function (err) {
+            .on('error', function (err, stdout, stderr) {
+                if (err) {
+                    console.error(err.message);
+                    console.error("stdout:\n" + stdout);
+                    console.error("stderr:\n" + stderr);
+                }
                 console.log('An error occurred: ' + err.message);
                 reject(err);
             })

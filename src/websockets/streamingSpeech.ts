@@ -7,19 +7,20 @@ import { text_to_speech_model } from "./scoringVad";
 const ffmpegStatic = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 
-
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const open_ai_audio_format = 'aac';
 
 export enum SHARED_TRANSCRIPTION_STATE {
     CONNECTED = "connected",
+    //TODO: add a "we here you" state
     VOICE_DETECTED = "voice_detected",
-    VOICE_DETECTION_FINISHED = "voice_detection_finished",
+    // VOICE_DETECTION_FINISHED = "voice_detection_finished",
     TRANSCRIBING = "transcribing",
     STREAM_STARTED = "stream_started",
     STREAM_FINISHED = "stream_finished",
-    AUTO_PAUSE = "auto_pause"
+    AUTO_PAUSE = "auto_pause",
+    // AUTO_CUTOFF = "auto_cutoff" //when we cut the user off cause its too long
 }
 
 type SERVER_STATE_MESSAGE = {
@@ -64,7 +65,7 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
         // opneAiFileWriteStream.on('finish', () => {
         //     console.log('Audio data saved to file:', openAiAudioFilePath);
         // });
-        
+
         // const pcmAudioFilePath = './public/uploads/tts.pcm';
         // const pcmFileWriteStream = fs.createWriteStream(pcmAudioFilePath);
 
@@ -83,7 +84,20 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
                 ])
                 // .audioFilters('equalizer=f=4000:width_type=h:width=2000:g=-10') // Apply the high-pass filter
                 // .audioFilters(`highpass=f=${cutoffFrequency}`) // Apply the high-pass filter
-                .on('error', (err) => {
+                // .on('error', function(err, stdout, stderr) {
+                //     if (err) {
+                //         console.log(err.message);
+                //         console.log("stdout:\n" + stdout);
+                //         console.log("stderr:\n" + stderr);
+                //         reject("Error");
+                //     }
+                // })
+                .on('error', (err, stdout, stderr) => {
+                    if (err) {
+                        console.error(err.message);
+                        console.error("stdout:\n" + stdout);
+                        console.error("stderr:\n" + stderr);
+                    }
                     console.error('FFmpeg error:', err.message);
                     ws.send(JSON.stringify({ key: "error", value: "Error processing audio" }));
                 });
@@ -124,8 +138,16 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
                 // pcmFileWriteStream.end();
             });
 
-            ffmpegStream.on('error', (error) => {
-                console.error('Error streaming TTS audio:', error);
+            ffmpegStream.on('error', (err, stdout, stderr) => {
+                if (err) {
+                    console.error(err.message);
+                    console.error("stdout:\n" + stdout);
+                    console.error("stderr:\n" + stderr);
+                }
+                console.error('FFmpeg error:', err.message);
+                ws.send(JSON.stringify({ key: "error", value: "Error processing audio" }));
+                // });
+                console.error('Error streaming TTS audio:', err);
                 // Optionally, inform the client about the error
                 ws.send(JSON.stringify({ key: "error", value: "Error streaming TTS audio from FFMPeg" }));
             });

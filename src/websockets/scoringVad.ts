@@ -20,7 +20,8 @@ const SPEECH_START_THRESHOLD = 10 // Number of consecutive speech detections nee
 const SPEECH_END_THRESHOLD = 10 // Number of consecutive speech detections needed to confirm end
 
 const AUTO_PAUSE_THRESHOLD = 20000 // 20 seconds
-const HEARTBEAT_INTERVAL = 1000 * 10; // 5 seconds //TODO: change to 10 seconds or average speaking length?
+const AUTO_CUTOFF_THRESHOLD = 60000 // 60 seconds
+const HEARTBEAT_INTERVAL = 1000 * 10; // 5 seconds 
 //Seems in bad connections this maybe gets drowned out by upstreaming data?
 //failing while in argentina intermittently
 const HEARTBEAT_VALUE = new Uint8Array([0]);
@@ -41,7 +42,7 @@ export class WebSocketWithVAD {
 
     private vadProcessor = new VAD(VAD_MODE);
 
-    ///for scoring teh user start and stop of speech
+    ///for scoring the user start and stop of speech
     private notVoiceScore = 0; // Score to track silence occurrences
     private voiceScore = 0; // Score to track voice occurrences
 
@@ -50,6 +51,8 @@ export class WebSocketWithVAD {
 
     //will use for auto pause system
     private firstChunkTime: Date = null;
+    //Will use for auto cutoff system
+    private firstVoiceChunkTime: Date = null;
 
     private audioBuffer: Buffer = Buffer.alloc(0);
 
@@ -108,7 +111,6 @@ export class WebSocketWithVAD {
         this.voiceScore = Math.max(this.voiceScore + 1, 0);
         this.notVoiceScore = Math.max(this.notVoiceScore - 1, 0);
         console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
-        console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
     }
 
     //change this so that we just zero out silence score when we start speaking
@@ -118,13 +120,16 @@ export class WebSocketWithVAD {
         this.notVoiceScore = Math.max(this.notVoiceScore + 1, 0);
         this.voiceScore = Math.max(this.voiceScore - 1, 0);
         console.log("Voice Score: voice - " + this.voiceScore + ", notVoice - " + this.notVoiceScore);
-
-        if (this.firstChunkTime != null && (Date.now() - this.firstChunkTime.getTime()) > AUTO_PAUSE_THRESHOLD && !this.isUserSpeaking) {
-            console.log("More than 20 seconds have passed since the first audio chunk was received");
-            console.log("Auto pausing: " + this.firstChunkTime.toISOString());
-            sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.AUTO_PAUSE);
-        }
     }
+
+    private setUserIsSpeaking = () => {
+        this.isUserSpeaking = true;
+        this.firstVoiceChunkTime = new Date();
+        //set counters back to zero when we notice user is speaking
+        //Because now the score switches to determening when user has stopped speaking
+        this.resetVoiceScores();
+    }
+
 
     private resetVoiceScores = () => {
         this.notVoiceScore = 0;
@@ -136,6 +141,7 @@ export class WebSocketWithVAD {
         this.isUserSpeaking = false;
         this.audioBuffer = Buffer.alloc(0);
         this.firstChunkTime = null;
+        this.firstVoiceChunkTime = null;
     }
 
     private async processAudioChunk(audioChunk: Buffer): Promise<void> {
@@ -150,7 +156,7 @@ export class WebSocketWithVAD {
         //Push unchanged audio always into the audiobuffer used fro transcribing
         this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
         //Noise cancelling for things like airconditioning and machine humming
-        let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 150);
+        let noiseSupppressedAudio = await applyHighPassFilter(audioChunk, 200);
 
         this.vadProcessor.processAudio(noiseSupppressedAudio, CLIENT_SENT_SAMPLE_RATE).then((res: any) => {
             switch (res) {
@@ -158,7 +164,6 @@ export class WebSocketWithVAD {
                     this.ws.send(JSON.stringify({ key: "vad", value: "voice" }));
                     console.log("-- voice --");
                     this.addVoiceScore();
-                    // this.audioBuffer = Buffer.concat([this.audioBuffer, audioChunk]);
 
                     //if we have enough voice detections to confirm speech start
                     if (this.voiceScore > SPEECH_START_THRESHOLD && !this.isUserSpeaking) {
@@ -166,22 +171,14 @@ export class WebSocketWithVAD {
                         console.log("Confirmed speech start");
                         this.ws.send(JSON.stringify({ key: "message", value: "Confirmed Speech Start" }));
                         sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.VOICE_DETECTED);
-                        this.isUserSpeaking = true;
-                        //set counters back to zero when we notice user is speaking
-                        //Because now the score switches to determening when user has stopped speaking
-                        this.resetVoiceScores();
+
+                        this.setUserIsSpeaking();
                     }
-                    break;
-                case VAD.Event.NOISE:
-                    console.log("-- noise --");
-                    this.ws.send(JSON.stringify({ key: "vad", value: "noise" }));
-                    this.addNotVoiceScore();
-                case VAD.Event.SILENCE:
-                    console.log("-- silence --");
-                    this.addNotVoiceScore()
-                    this.ws.send(JSON.stringify({ key: "vad", value: "silence" }));
-                    //We started then stopped speaking
-                    if (this.notVoiceScore > SPEECH_END_THRESHOLD && this.isUserSpeaking) {
+
+                    //we have enough voice time to cutoff the user and do the work
+                    if (this.isUserSpeaking && this.firstVoiceChunkTime != null && (Date.now() - this.firstVoiceChunkTime.getTime()) > AUTO_CUTOFF_THRESHOLD) {
+                        console.log(`More than ${AUTO_CUTOFF_THRESHOLD / 1000} seconds have passed since the first voice audio chunk was received`);
+                        console.log("Auto cuttoff for long content: " + this.firstVoiceChunkTime.toISOString());
                         this.ws.send(JSON.stringify({ key: "message", value: "Starting Transcription" }));
                         sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.TRANSCRIBING);
                         //transcribe and stream speech
@@ -190,12 +187,39 @@ export class WebSocketWithVAD {
                         this.resetVadState();
                     }
                     break;
+                case VAD.Event.NOISE:
+                case VAD.Event.SILENCE:
+                    const eventType = event === VAD.Event.NOISE ? "noise" : "silence";
+                    console.log(`-- ${eventType} --`);
+                    this.addNotVoiceScore()
+                    this.ws.send(JSON.stringify({ key: "vad", value: eventType }));
+                    //The Happy Path. We started then stopped speaking 
+                    if (this.notVoiceScore > SPEECH_END_THRESHOLD && this.isUserSpeaking) {
+                        this.ws.send(JSON.stringify({ key: "message", value: "Starting Transcription" }));
+                        sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.TRANSCRIBING);
+                        //transcribe and stream speech
+                        this.transcribeAndStreamSpeech(this.audioBuffer, this.user_id).catch(console.error);
+                        //reset state for next audio message
+                        this.resetVadState();
+                    }
+
+                    //Auto Pause: We never started talking enough so we pause. 
+                    if (this.firstChunkTime != null && (Date.now() - this.firstChunkTime.getTime()) > AUTO_PAUSE_THRESHOLD && !this.isUserSpeaking) {
+                        console.log("More than 20 seconds have passed since the first audio chunk was received");
+                        console.log("Auto pausing: " + this.firstChunkTime.toISOString());
+                        //AUTO_PAUSE 
+                        sendServerStateMessage(this.ws, SHARED_TRANSCRIPTION_STATE.AUTO_PAUSE);
+                        this.resetVadState();
+                    }
+                    break;
                 case VAD.Event.ERROR:
-                    console.log("-- error --");
+                    console.error("-- error --");
                     this.ws.send(JSON.stringify({ key: "vad", value: "error" }));
+                    this.resetVadState();
                     break;
                 default:
-                    console.log("Error or unknown VAD event");
+                    console.error("Error or unknown VAD event");
+                    break;
             }
         }).catch(console.error);
     }
