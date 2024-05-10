@@ -189,10 +189,10 @@ export class WebSocketWithVAD {
                     break;
                 case VAD.Event.NOISE:
                 case VAD.Event.SILENCE:
-                    // const eventType = 
-                    console.log(`-- ${res} --`);
+                    const eventType = res === VAD.Event.NOISE ? "noise" : "silence";
+                    console.log(`-- ${eventType} --`);
                     this.addNotVoiceScore()
-                    this.ws.send(JSON.stringify({ key: "vad", value: res }));
+                    this.ws.send(JSON.stringify({ key: "vad", value: eventType }));
                     //The Happy Path. We started then stopped speaking 
                     if (this.notVoiceScore > SPEECH_END_THRESHOLD && this.isUserSpeaking) {
                         this.ws.send(JSON.stringify({ key: "message", value: "Starting Transcription" }));
