@@ -4,6 +4,7 @@ const ffmpeg = require('fluent-ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 import { Readable, Writable } from 'stream';
+import LogError from '../utils/errorLogger';
 
 export const applyHighPassFilter = async (audioChunk: Buffer, cutoffFrequency: number): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
@@ -28,6 +29,7 @@ export const applyHighPassFilter = async (audioChunk: Buffer, cutoffFrequency: n
                     console.error("stderr:\n" + stderr);
                 }
                 console.log('An error occurred: ' + err.message);
+                LogError(err, 'An error occurred while applying the high-pass filter');
                 reject(err);
             })
             .on('end', function () {

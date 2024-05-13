@@ -4,6 +4,7 @@ import OpenAI from "openai";
 
 import { Readable } from 'stream';
 import { text_to_speech_model } from "./scoringVad";
+import LogError from "../utils/errorLogger";
 const ffmpegStatic = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 
@@ -99,6 +100,7 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
                         console.error("stderr:\n" + stderr);
                     }
                     console.error('FFmpeg error:', err.message);
+                    LogError(err, 'An error occurred while converting AAC to PCM');
                     ws.send(JSON.stringify({ key: "error", value: "Error processing audio" }));
                 });
 
@@ -145,9 +147,10 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
                     console.error("stderr:\n" + stderr);
                 }
                 console.error('FFmpeg error:', err.message);
+                LogError(err, 'An error occurred while streaming TTS audio');
                 ws.send(JSON.stringify({ key: "error", value: "Error processing audio" }));
                 // });
-                console.error('Error streaming TTS audio:', err);
+                // console.error('Error streaming TTS audio:', err);
                 // Optionally, inform the client about the error
                 ws.send(JSON.stringify({ key: "error", value: "Error streaming TTS audio from FFMPeg" }));
             });
@@ -157,12 +160,13 @@ export const genStreamingSpeech = async (speech_text: string, ws: WebSocket, res
 
         stream.on('error', (error) => {
             console.error('Error streaming TTS audio:', error);
+            LogError(error, 'An error occurred while streaming TTS audio from openAI');
             // Optionally, inform the client about the error
             ws.send(JSON.stringify({ key: "error", value: "Error streaming TTS audio" }));
         });
 
     } catch (error) {
-        console.error('Error generating speech:', error);
+        LogError(error, 'An error occurred while generating speech');
         // Optionally, inform the client about the error
         ws.send(JSON.stringify({ key: "error", value: "Error generating speech" }));
         throw error;

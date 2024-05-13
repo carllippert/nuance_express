@@ -2,7 +2,6 @@ import { error as errorLogger } from "./logger";
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import * as Sentry from "@sentry/node";
-import { PostHog } from 'posthog-node'
 
 export const unknownEndpoint = (req: Request, res: Response) => {
   res.status(404).send({ error: `unknown endpoint` });

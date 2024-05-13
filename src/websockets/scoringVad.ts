@@ -12,6 +12,7 @@ import {
 
 import { createClient } from "@supabase/supabase-js";
 import { applyHighPassFilter } from "./noiseSuppression";
+import LogError from "../utils/errorLogger";
 
 ///Adjustments
 let VAD_MODE = VAD.Mode.NORMAL
@@ -218,10 +219,14 @@ export class WebSocketWithVAD {
                     this.resetVadState();
                     break;
                 default:
-                    console.error("Error or unknown VAD event");
+                    LogError(Error("Error or unknown VAD event"), "Error or unknown VAD event");
                     break;
             }
-        }).catch(console.error);
+        }).catch((error: any) => {
+            LogError(error, "Error processing audio");
+            // this.ws.send(JSON.stringify({ key: "error", value: "Error processing audio" }));
+            // this.resetVadState();
+        });
     }
 
     private async transcribeAndStreamSpeech(audioData: Buffer, user_id: string): Promise<void> {
@@ -251,7 +256,7 @@ export class WebSocketWithVAD {
                     });
 
                 } catch (error: any) {
-                    console.log("error in posthog event capture:", JSON.stringify(error));
+                    LogError(error, "Error in posthog event capture");
                 }
 
             } else {
@@ -294,25 +299,20 @@ export class WebSocketWithVAD {
                                 user_id,
                                 response_message_text: english_transcript,
                                 transcription_response_text: spanish_transcript,
-                                // completion_tokens,
-                                // total_completion_tokens,
-                                // completion_attempts,
-                                // all_completion_responses,
                                 current_seconds_from_gmt: Number(this.current_seconds_from_gmt),
                                 current_user_timezone: this.current_user_timezone,
                                 user_input_machine_scoring,
                                 application_response_machine_scoring,
-                                // speed_data,
                             },
                         ])
                         .select();
 
                     if (insertError) {
-                        console.error("error in message persistance:", JSON.stringify(insertError));
+                        LogError(insertError, "Error in message persistance");
                     }
 
                 } catch (error: any) {
-                    console.log("error in message persistance:", JSON.stringify(error));
+                    LogError(error, "Error in message persistance");
                 }
 
                 try {
@@ -323,25 +323,22 @@ export class WebSocketWithVAD {
                         event: "server_generated_message_content",
                         properties: {
                             message_input_classification: "reading",
-                            message_input_classifier: "none",  //in future maybe it can be automatic  with AI
+                            message_input_classifier: "none",
                             transcription_model,
                             text_to_speech_model,
                             llm_model,
                             response_message_text: english_transcript,
                             transcription_response_text: spanish_transcript,
-                            // total_completion_tokens,
-                            //timing data
-                            // ...speed_data,
                         },
                     });
 
                 } catch (error: any) {
-                    console.log("error in posthog event capture:", JSON.stringify(error));
+                    LogError(error, "Error in posthog event capture");
                 }
             }
 
         } catch (error) {
-            console.error("Error transcribing audio:", error);
+            LogError(error, "Error transcribing audio");
             this.ws.send(JSON.stringify({ key: "error", value: "Error transcribing audio" }));
         }
     }
