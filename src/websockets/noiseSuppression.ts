@@ -28,7 +28,8 @@ export const applyHighPassFilter = async (audioChunk: Buffer, cutoffFrequency: n
                 console.log('Spawned ffmpeg with command: ' + commandLine);
             })
             .on('stderr', stderrLine => {
-                LogError(new Error(stderrLine), 'An stderr occurred while applying the high-pass filter');
+                console.log("stderr: ", stderrLine); 
+                // LogError(new Error(stderrLine), 'An stderr occurred while applying the high-pass filter');
             })
             .on('error', (err, stdout, stderr) => {
                 if (err.message.includes('Output stream closed')) {

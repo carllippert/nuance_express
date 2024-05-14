@@ -48,7 +48,8 @@ const convertAACtoPCMAndStream = (audioChunkStream, ws, startedStreaming, reset)
             console.log('Spawned ffmpeg with command: ' + commandLine);
         })
         .on('stderr', stderrLine => {
-            LogError(new Error(stderrLine), 'An stderr occurred while converting AAC to PCM');
+            console.log("stderr: ", stderrLine);
+            // LogError(new Error(stderrLine), 'An stderr occurred while converting AAC to PCM');
         })
         .on('error', (err, stdout, stderr) => {
             console.error("stdout:\n" + stdout);
