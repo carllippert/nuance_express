@@ -1,10 +1,11 @@
 import OpenAI from "openai";
 import { llm_model } from "./scoringVad";
+import LogError from "../utils/errorLogger";
 
 export const fetchCompletion = async (transcript: string) => {
     try {
 
-        console.log("fetching Completion");
+        console.log("Fetching Translation Completion");
 
         const openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY || "",
@@ -27,11 +28,10 @@ export const fetchCompletion = async (transcript: string) => {
             ? completion.choices[0].message.content
             : "";
 
-
         return gptResponse;
     }
     catch (error) {
-        console.error('Error fetching completion:', error);
+        LogError(error, 'Error fetching completion');
         throw error
     }
 }

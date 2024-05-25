@@ -3,6 +3,7 @@ import fs from "fs";
 
 import path from "path";
 import os from "os";
+import LogError from "../utils/errorLogger";
 
 import { CLIENT_SENT_SAMPLE_RATE, transcription_model } from "../websockets/scoringVad";
 
@@ -72,12 +73,12 @@ export const transcribeAudio = async (audioData: Buffer) => {
             prompt: "¿Qué pasa? - dijo Ron"
         });
 
-        // Optionally, delete the temporary file after use
+        // Delete the temporary file after use
         fs.unlinkSync(tempFilePath);
 
         return transcript.text;
     } catch (error) {
-        console.error('Error transcribing audio:', error);
+        LogError(error, 'Error transcribing audio');
         throw error;
     }
 };
