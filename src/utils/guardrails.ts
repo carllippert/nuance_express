@@ -1,3 +1,7 @@
+//Writting by GPT
+
+//" Subtitles made by the amara.org community"
+//"Subtítulos realizados por la communidad de Amara.org"        
 type MiddlewareFunction<T> = (data: T, context: any, next: () => Promise<T>) => Promise<T>;
 
 async function runMiddleware<T>(data: T, middlewares: MiddlewareFunction<T>[], context: any = {}): Promise<T> {
