@@ -7,43 +7,6 @@ import LogError from "../utils/errorLogger";
 
 import { CLIENT_SENT_SAMPLE_RATE, transcription_model } from "../websockets/scoringVad";
 
-// export const transcribeAudio = async (audioData: Buffer) => {
-//     try {
-//         console.log("Transcribing Audio Started");
-
-//         const openai = new OpenAI({
-//             apiKey: process.env.OPENAI_API_KEY || "",
-//         });
-
-//         // Prepend the WAV header to the raw PCM data
-//         const wavData = addWavHeader(audioData);
-
-//         const tempFilePath = `./public/uploads/user.wav`;
-
-//         if (fs.existsSync(tempFilePath)) {
-//             fs.unlinkSync(tempFilePath);
-//         }
-
-//         fs.writeFileSync(tempFilePath, wavData);
-
-//         const transcript = await openai.audio.transcriptions.create({
-//             file: fs.createReadStream(tempFilePath),
-//             model: transcription_model,
-//             language: "es",
-//             prompt: "¿Qué pasa? - dijo Ron"
-//         });
-
-//         // Clean up the temporary file
-//         fs.unlinkSync(tempFilePath); //Remove if you want to listen to audio
-
-//         // Implementation goes here
-//         return transcript.text;
-//     } catch (error) {
-//         console.error('Error transcribing audio:', error);
-//         throw error
-//     }
-// }
-
 export const transcribeAudio = async (audioData: Buffer) => {
     try {
         console.log("Transcribing Audio Started");
