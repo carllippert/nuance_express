@@ -103,7 +103,6 @@ export const configureExpressRoutes = (app: Application) => {
     //Webhooks from external systems
     app.use("/webhooks/revenuecat", revCatWebhookRoute);
 
-
     // The error handler must be registered before any other error middleware and after all controllers
     app.use(Sentry.Handlers.errorHandler());
 

@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { llm_model } from "./scoringVad";
-import LogError from "../utils/errorLogger";
+import { llm_model } from "./readingWebsocketHandler";
+import LogError from "../../utils/errorLogger";
 
 export const fetchCompletion = async (transcript: string) => {
     try {

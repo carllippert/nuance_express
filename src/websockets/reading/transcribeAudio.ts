@@ -3,9 +3,9 @@ import fs from "fs";
 
 import path from "path";
 import os from "os";
-import LogError from "../utils/errorLogger";
+import LogError from "../../utils/errorLogger";
 
-import { CLIENT_SENT_SAMPLE_RATE, transcription_model } from "../websockets/scoringVad";
+import { CLIENT_SENT_SAMPLE_RATE, transcription_model } from "./readingWebsocketHandler";
 
 export const transcribeAudio = async (audioData: Buffer) => {
     try {

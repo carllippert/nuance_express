@@ -3,8 +3,8 @@ import { WebSocket } from "ws";
 import OpenAI from "openai";
 
 import { Readable } from 'stream';
-import { text_to_speech_model } from "./scoringVad";
-import LogError from "../utils/errorLogger";
+import { text_to_speech_model } from "./readingWebsocketHandler";
+import LogError from "../../utils/errorLogger";
 const ffmpegStatic = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 

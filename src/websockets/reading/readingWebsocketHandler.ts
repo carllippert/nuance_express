@@ -8,11 +8,11 @@ import { PostHog } from "posthog-node";
 
 import {
     categorizeUserInput,
-} from "../categorize/scoring";
+} from "../../categorize/scoring";
 
 import { createClient } from "@supabase/supabase-js";
-import { applyHighPassFilter } from "./noiseSuppression";
-import LogError from "../utils/errorLogger";
+import { applyHighPassFilter } from "../utils/noiseSuppression";
+import LogError from "../../utils/errorLogger";
 
 ///Adjustments
 let VAD_MODE = VAD.Mode.NORMAL
@@ -22,25 +22,12 @@ const SPEECH_END_THRESHOLD = 10 // Number of consecutive speech detections neede
 
 const AUTO_PAUSE_THRESHOLD = 20000 // 20 seconds
 const AUTO_CUTOFF_THRESHOLD = 60000 // 60 seconds
-const HEARTBEAT_INTERVAL = 1000 * 10; // 5 seconds 
-//Seems in bad connections this maybe gets drowned out by upstreaming data?
-//failing while in argentina intermittently
-const HEARTBEAT_VALUE = new Uint8Array([0]);
 
 export const transcription_model = "whisper-1"
 export const text_to_speech_model = 'tts-1'
 export const llm_model = "gpt-3.5-turbo"
 
-function ping(ws) {
-    // Create a buffer with a single byte of value 0
-    console.log("ping");
-    ws.send(HEARTBEAT_VALUE, { binary: true });
-}
-
-export class WebSocketWithVAD {
-
-    private isAlive = true;
-
+export class ReadingWebsocketHandler {
     private vadProcessor = new VAD(VAD_MODE);
 
     ///for scoring the user start and stop of speech
@@ -64,7 +51,6 @@ export class WebSocketWithVAD {
         private current_seconds_from_gmt: string
     ) {
         this.setupWebSocket();
-        this.setupHeartbeat();
     }
 
     private setupWebSocket(): void {
@@ -73,37 +59,11 @@ export class WebSocketWithVAD {
                 // Check if the message is a pong
                 if (message.length === 1 && message[0] === 0x00) {
                     console.log("Received pong");
-                    this.isAlive = true;
-                    // Handle pong (e.g., update heartbeat timestamp)
                 } else {
                     // Process as audio chunk
                     this.processAudioChunk(message);
                 }
             }
-        });
-    }
-
-    private setupHeartbeat() {
-        let interval = setInterval(() => {
-            //connectino is dead ( we never received pong )
-            if (!this.isAlive) {
-                console.log("Terminating dead connection. No Pong received.");
-
-                //Close gracefully and tell client to try again essentially
-                this.ws.send(JSON.stringify({ key: "error", value: "4000" }));
-                // We use code 4000 thouse but currently app reads it from above send not from actual close frame
-                this.ws.close(4000, 'Connection was closed abnormally');
-                /// 4000 is an open code https://www.rfc-editor.org/rfc/rfc6455.html#section-7.4.2
-                return;
-            }
-            //set to false every time
-            //gets turned true when the pong is received
-            this.isAlive = false;
-            ping(this.ws);
-        }, HEARTBEAT_INTERVAL);
-
-        this.ws.on('close', () => {
-            clearInterval(interval);
         });
     }
 
@@ -130,7 +90,6 @@ export class WebSocketWithVAD {
         //Because now the score switches to determening when user has stopped speaking
         this.resetVoiceScores();
     }
-
 
     private resetVoiceScores = () => {
         this.notVoiceScore = 0;

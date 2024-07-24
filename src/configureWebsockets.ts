@@ -1,13 +1,15 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 
-import { WebSocketWithVAD } from './websockets/scoringVad';
-import { SHARED_TRANSCRIPTION_STATE, sendServerStateMessage } from './websockets/streamingSpeech';
+import { ReadingWebsocketHandler } from './websockets/reading/readingWebsocketHandler';
+import { ChatWebsocketHandler } from './websockets/chat/chatWebsocketHandler';
+import { SHARED_TRANSCRIPTION_STATE, sendServerStateMessage } from './websockets/reading/streamingSpeech';
 import * as Sentry from "@sentry/node";
 
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || "no-secret";
 
 import jwt from "jsonwebtoken";
+import { setupHeartbeat } from './websockets/utils/heartbeat';
 
 function onSocketPreError(err: Error) {
     console.error('WebSocket error:', err);
@@ -84,8 +86,27 @@ export const configureWebsockets = (server: Server) => {
                 console.log("JWT Verified");
                 console.log('New WebSocket connection', request.url);
                 sendServerStateMessage(ws, SHARED_TRANSCRIPTION_STATE.CONNECTED);
-                new WebSocketWithVAD(ws, user_id, String(current_user_timezone), String(current_seconds_from_gmt));
+
                 Sentry.setUser({ id: user_id });
+
+                //Setup heartbeat
+                setupHeartbeat(ws);
+
+                //ROUTER
+                switch (request.url) {
+                    case '/read':
+                        new ReadingWebsocketHandler(ws, user_id, String(current_user_timezone), String(current_seconds_from_gmt));
+                        break;
+                    case '/chat':
+                        new ChatWebsocketHandler(ws, user_id, String(current_user_timezone), String(current_seconds_from_gmt));
+
+                        break;
+                    default:
+                        console.error("Invalid WebSocket route");
+                        ws.send(JSON.stringify({ key: "error", value: "404" }));
+                        ws.close(1008, 'Not Found');
+                }
+
             }
         });
 
