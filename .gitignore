@@ -34,3 +34,5 @@ dist/
 public/uploads/
 # Sentry Config File
 .sentryclirc
+
+.history
